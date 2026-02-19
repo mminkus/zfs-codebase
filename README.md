@@ -26,6 +26,12 @@ All source references point to the [OpenZFS repository](https://github.com/openz
 git clone https://github.com/openzfs/zfs.git
 ```
 
+Reference revision used for line-number anchors in this guide:
+
+- OpenZFS commit `0f9564e85b0103aef43951cd931cb88fa9a68d6c` (master, 2026-02-16)
+
+Line numbers will drift as OpenZFS evolves. When they do, use the symbol/function names in each chapter (`rg`/search in tree) to relocate the code quickly.
+
 ## License
 
 MIT
