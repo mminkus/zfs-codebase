@@ -32,6 +32,17 @@ Reference revision used for line-number anchors in this guide:
 
 Line numbers will drift as OpenZFS evolves. When they do, use the symbol/function names in each chapter (`rg`/search in tree) to relocate the code quickly.
 
+Related on-disk format documentation:
+
+- https://github.com/mminkus/zfs-ondiskformat/
+
+## Contributing & Community Links
+
+- Main PR and commit procedure: https://github.com/openzfs/zfs/blob/master/.github/CONTRIBUTING.md
+- OpenZFS "Participate": https://openzfs.org/wiki/Participate
+- OpenZFS "Developer resources": https://openzfs.org/wiki/Developer_resources
+- OpenZFS GitHub contribution entrypoint: https://github.com/openzfs/zfs/contribute
+
 ## License
 
 MIT

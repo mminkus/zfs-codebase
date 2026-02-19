@@ -365,6 +365,10 @@ Useful inspection macro families while stepping:
 
 The in-memory structure here maps directly to the 128-byte on-disk block pointer format described in `include/sys/spa.h`.
 
+For a dedicated on-disk format walkthrough alongside this code-focused chapter, see:
+
+- https://github.com/mminkus/zfs-ondiskformat/
+
 A practical bridge when correlating runtime with disk inspection:
 
 1. identify target block pointer fields in code (`BP_GET_*`, `DVA_GET_*`)

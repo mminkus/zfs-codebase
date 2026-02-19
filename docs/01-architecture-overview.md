@@ -17,6 +17,10 @@ If you keep one model in your head, use this:
 
 That split explains a lot of ZFS behavior that otherwise feels non-linear.
 
+Companion on-disk format reference:
+
+- https://github.com/mminkus/zfs-ondiskformat/
+
 ---
 
 ## Diagram 1 - Big Picture Stack
