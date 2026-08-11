@@ -126,11 +126,12 @@ Thread A (write syscall)
   zpl_iter_write
     -> Linux glue (zfs_vnops_os.c) as needed
     -> zfs_write
-      -> dmu_tx_assign
-      -> dmu_write
-      -> dbuf_dirty
-      -> zil_commit (sync writes / fsync path)
-      -> dmu_tx_commit
+      per chunk:
+        -> dmu_tx_assign
+        -> dmu_write
+        -> dbuf_dirty
+        -> dmu_tx_commit
+      -> zil_commit (once, after the loop; sync writes / fsync path only)
   return to caller
 
 txg sync thread (background)
@@ -586,7 +587,7 @@ Userland side
   lib/libzfs/
   lib/libzfs_core/
   lib/libzpool/
-  cmd/zfs cmd/zpool cmd/zdb cmd/zhack cmd/ztest
+  cmd/zfs/ cmd/zpool/ cmd/zdb/ cmd/zhack.c cmd/ztest.c
 ```
 
 Why this matters:

@@ -83,7 +83,7 @@ openzfs/
 ├── cmd/       user-facing binaries and tools
 ├── config/    build-system configuration and probes
 ├── contrib/   optional integrations and external helpers
-├── etc/       config templates (including compatibility files)
+├── etc/       init/service/runtime config templates
 ├── include/   headers used across kernel and userland
 ├── lib/       userland libraries
 ├── man/       man pages
@@ -112,7 +112,7 @@ Important point:
 High-value subsystem anchors:
 
 - Pool and txg orchestration: `spa.c`, `spa_misc.c`, `txg.c`
-- Object and transaction core: `dmu.c`, `dmu_tx.c`, `dnode.c`, `objset.c`
+- Object and transaction core: `dmu.c`, `dmu_tx.c`, `dnode.c`, `dmu_objset.c`
 - Dataset/snapshot semantics: `dsl_dataset.c`, `dsl_dir.c`, `dsl_pool.c`
 - Send/receive replication: `dmu_send.c`, `dmu_recv.c`
 - Cache and buffers: `arc.c`, `dbuf.c`, `abd.c`
@@ -260,7 +260,7 @@ These are less exciting but important:
 
 - `config/` and `scripts/`: configure probes, build helper logic
 - `man/`: canonical user-facing documentation updates
-- `etc/`: compatibility and runtime config assets
+- `etc/`: init/service and runtime config templates (pool feature compatibility files live in `cmd/zpool/compatibility.d/`)
 - `udev/`: Linux device rule integration
 - `rpm/`: packaging metadata
 

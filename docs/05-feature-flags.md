@@ -306,8 +306,8 @@ zpool get all POOL | rg 'feature@'
 # See pool compatibility policy
 zpool get compatibility POOL
 
-# Dry-run import and surface feature compatibility notes
-zpool import -n POOL
+# List importable pools; the scan reports unsupported-feature status
+zpool import
 ```
 
 When tracing code behavior, these anchors are usually the best first breakpoints:
@@ -332,7 +332,7 @@ This is the shortest reliable workflow for contributors.
 5. Gate behavior with `spa_feature_is_enabled()` and increment/decrement usage with `spa_feature_incr()`/`spa_feature_decr()` in syncing context.
 6. Add/extend tests in `tests/zfs-tests/tests/functional/features/` or the subsystem-specific suite.
 7. Update `man/man7/zpool-features.7`.
-8. Consider compatibility file implications in `etc/zfs/compatibility.d/`.
+8. Consider compatibility file implications in `cmd/zpool/compatibility.d/` (installed to `/usr/share/zfs/compatibility.d/`; `/etc/zfs/compatibility.d/` is only the admin-local override path).
 
 Two design rules from `module/zfs/zfeature.c` comments are worth keeping front-and-center:
 

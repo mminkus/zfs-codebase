@@ -163,9 +163,14 @@ How this maps conceptually:
 
 1. choose compression and possibly transform payload (`zio_write_compress`)
 2. set pointer properties from `zio_prop_t`
-3. allocate DVAs (`zio_dva_allocate`)
-4. generate checksum (`zio_checksum_generate`)
+3. generate checksum (`zio_checksum_generate`)
+4. allocate DVAs (`zio_dva_allocate`)
 5. issue device I/O (`zio_vdev_io_start`)
+
+Note the ordering: the checksum covers only the data, not its placement,
+so `ZIO_STAGE_CHECKSUM_GENERATE` (bit 7) runs before
+`ZIO_STAGE_DVA_ALLOCATE` (bit 17) -- pipeline stages execute in
+ascending bit order.
 
 ---
 
@@ -175,8 +180,8 @@ How this maps conceptually:
 flowchart TD
     A["zio_write_bp_init()"] --> B["zio_write_compress()"]
     B --> C["set BP fields<br/>LSIZE/PSIZE/COMPRESS/CHECKSUM/TYPE/LEVEL"]
-    C --> D["zio_dva_allocate()<br/>metaslab_alloc() picks DVAs"]
-    D --> E["zio_checksum_generate()<br/>compute blk_cksum"]
+    C --> D["zio_checksum_generate()<br/>compute blk_cksum"]
+    D --> E["zio_dva_allocate()<br/>metaslab_alloc() picks DVAs"]
     E --> F["zio_vdev_io_start()<br/>physical write"]
     F --> G["txg sync commit"]
 ```
