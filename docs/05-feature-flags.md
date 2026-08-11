@@ -119,7 +119,7 @@ Concrete examples worth reading:
 Primary definitions: `include/zfeature_common.h:100`.
 
 - `ZFEATURE_FLAG_READONLY_COMPAT`: unsupported feature may still allow read-only import.
-- `ZFEATURE_FLAG_MOS`: feature affects MOS-level behavior/requirements.
+- `ZFEATURE_FLAG_MOS`: feature is required to read the MOS/feature list at all; when active it is written into the vdev label's `features_for_read` so support can be checked before pool open.
 - `ZFEATURE_FLAG_ACTIVATE_ON_ENABLE`: initial refcount starts at 1 when enabled.
 - `ZFEATURE_FLAG_PER_DATASET`: feature usage is tracked per dataset context.
 - `ZFEATURE_FLAG_NO_UPGRADE`: `zpool upgrade` does not auto-enable it.
@@ -220,9 +220,9 @@ Primary control entry points:
 3. recursively enables dependencies (`feature->fi_depends`)
 4. writes `feature_descriptions` entry
 5. writes initial refcount in read/write feature ZAP
-6. records enabling txg if `enabled_txg` is active
+6. records the enabling txg if the `enabled_txg` feature is itself enabled (the gate is `spa_feature_is_enabled()`, not activity)
 
-Anchors: `module/zfs/zfeature.c:340` through `module/zfs/zfeature.c:377`.
+Anchors: `module/zfs/zfeature.c:340` through `module/zfs/zfeature.c:382`.
 
 Dependency query helper:
 

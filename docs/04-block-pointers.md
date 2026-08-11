@@ -217,7 +217,7 @@ Dispatch helpers:
 
 Pipeline behavior worth remembering:
 
-- if compressed size is not smaller, write falls back to uncompressed.
+- compression must earn its keep: the write falls back to uncompressed unless compression saves at least 12.5% (`zio_get_compression_max_size()`) and the result, rounded up to the device allocation size, is still smaller than lsize.
 - resulting algorithm is recorded in `BP_SET_COMPRESS(...)`/`BP_GET_COMPRESS(...)`.
 
 Compression stage reference: `ZIO_STAGE_WRITE_COMPRESS` in `include/sys/zio_impl.h:135`.

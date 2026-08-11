@@ -12,7 +12,8 @@ This is the practical question we are answering:
 
 All paths in this chapter are relative to an OpenZFS checkout root (for example `zfs/` from `git clone https://github.com/openzfs/zfs.git`).
 
-Current checkout snapshot used here:
+Snapshot counts at the pinned reference revision (see README; they
+drift as OpenZFS evolves, but the shape stays the same):
 
 - `module/zfs`: 138 `.c` files
 - `module/zcommon`: 17 `.c` files
@@ -180,7 +181,7 @@ One gotcha worth remembering:
 
 ## `lib/` - Userland Libraries
 
-`lib/` provides the userland API and tooling substrate. In this checkout there are 12 top-level libraries:
+`lib/` provides the userland API and tooling substrate. At the pinned reference revision there are 12 top-level libraries (current master has since added `libbtree/` and `librange_tree/`, userland builds of the like-named kernel data structures):
 
 - `libzfs/` (high-level administrative API used by `zfs`/`zpool`)
 - `libzfs_core/` (lower-level ioctl interface for programmatic control)

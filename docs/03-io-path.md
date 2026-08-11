@@ -330,13 +330,14 @@ This is where logical ZIO work becomes actual block-layer requests.
 Primary files:
 
 - `module/zfs/spa.c`
+- `module/zfs/vdev_label.c`
 - `include/sys/uberblock.h`
 - `include/sys/uberblock_impl.h`
 
 Key anchors:
 
-- `spa_sync_rewrite_vdev_config(...)`
-- `vdev_config_sync(...)`
+- `spa_sync_rewrite_vdev_config(...)` (spa.c)
+- `vdev_config_sync(...)` (vdev_label.c; drives the label and uberblock sync lists)
 
 During sync completion:
 
@@ -398,7 +399,7 @@ Typical read flow:
 
 Key contrast with writes:
 
-- reads do not create txg dirty state and do not involve ZIL commit semantics.
+- reads do not create txg dirty state. Under the default sync policy they do not involve the ZIL either, but with `sync=always` (or FRSYNC platforms) `zfs_read()` calls `zil_commit()` before taking the range lock, so pending sync writes are durable before the read proceeds.
 
 ### Diagram 4 - Read Path (Hit vs Miss)
 

@@ -37,12 +37,9 @@ ZPL adapters
   module/os/linux/zfs/zpl_inode.c
     |
     v
-Linux vnode glue
-  module/os/linux/zfs/zfs_vnops_os.c
-    |
-    v
-Core vnode logic (portable)
-  module/zfs/zfs_vnops.c
+Core vnode logic (portable)          (sibling: zfs_vnops_os.c holds the
+  module/zfs/zfs_vnops.c              other Linux vnops - readdir, mmap,
+                                      readlink - not the read/write hop)
     |
     +----------------------+
     |                      |
@@ -82,7 +79,7 @@ graph TD
     APP["Userspace Process"]
     VFS["Linux VFS"]
     ZPL["ZPL Adapters<br/>module/os/linux/zfs/zpl_file.c"]
-    VNOPOS["Linux vnode glue<br/>module/os/linux/zfs/zfs_vnops_os.c"]
+    VNOPOS["Other Linux vnops (readdir, mmap, ...)<br/>module/os/linux/zfs/zfs_vnops_os.c"]
     VNCORE["Core vnode logic<br/>module/zfs/zfs_vnops.c"]
     ZIL["ZIL semantics<br/>module/zfs/zil.c"]
     DMU["DMU<br/>module/zfs/dmu*.c"]
@@ -93,7 +90,8 @@ graph TD
     VDEV["VDEV queue/backend<br/>module/zfs/vdev_queue.c + module/os/linux/zfs/vdev_disk.c"]
     DISK["Block Layer / Devices"]
 
-    APP --> VFS --> ZPL --> VNOPOS --> VNCORE
+    APP --> VFS --> ZPL --> VNCORE
+    ZPL --> VNOPOS
     VNCORE --> DMU
     VNCORE --> ZIL
     DMU --> DSL
@@ -124,11 +122,10 @@ Time ------------------------------------------------------------>
 
 Thread A (write syscall)
   zpl_iter_write
-    -> Linux glue (zfs_vnops_os.c) as needed
-    -> zfs_write
+    -> zfs_write (called directly)
       per chunk:
         -> dmu_tx_assign
-        -> dmu_write
+        -> dmu_write_uio_dbuf
         -> dbuf_dirty
         -> dmu_tx_commit
       -> zil_commit (once, after the loop; sync writes / fsync path only)
@@ -166,9 +163,8 @@ sequenceDiagram
 
     U->>V: write()
     V->>Z: zpl_iter_write()
-    Z->>O: Linux glue path
-    O->>C: zfs_write()
-    C->>D: dmu_tx_assign() + dmu_write()
+    Z->>C: zfs_write() (direct call)
+    C->>D: dmu_tx_assign() + dmu_write_uio_dbuf()
     D->>B: dbuf_dirty()
     opt sync write / fsync semantics
         C->>C: zil_commit(...)
@@ -603,9 +599,9 @@ Why this matters:
 ```
 write()
   -> zpl_iter_write()                      (module/os/linux/zfs/zpl_file.c)
-    -> Linux vnode glue paths as needed    (module/os/linux/zfs/zfs_vnops_os.c)
-    -> zfs_write()                         (module/zfs/zfs_vnops.c)
-      -> dmu_tx_assign() / dmu_write()     (module/zfs/dmu_tx.c, module/zfs/dmu.c)
+    -> zfs_write()                         (module/zfs/zfs_vnops.c; called directly -
+                                            zfs_vnops_os.c holds the other Linux vnops)
+      -> dmu_tx_assign() / dmu_write_uio_dbuf() (module/zfs/dmu_tx.c, module/zfs/dmu.c)
         -> dbuf_dirty()                    (module/zfs/dbuf.c)
           -> txg_sync_thread()             (module/zfs/txg.c)
             -> spa_sync()                  (module/zfs/spa.c)
@@ -620,8 +616,7 @@ write()
 ```
 read()
   -> zpl_iter_read()                       (module/os/linux/zfs/zpl_file.c)
-    -> Linux vnode glue paths as needed    (module/os/linux/zfs/zfs_vnops_os.c)
-    -> zfs_read()                          (module/zfs/zfs_vnops.c)
+    -> zfs_read()                          (module/zfs/zfs_vnops.c; called directly)
       -> dmu read path                     (module/zfs/dmu.c + module/zfs/dbuf.c)
         -> arc_read()                      (module/zfs/arc.c)
           -> zio read pipeline on miss     (module/zfs/zio.c)

@@ -292,16 +292,19 @@ Upstream reference:
 
 ### CI mode override trailers
 
-Contributing guide and CI script agree on `ZFS-CI-Type` trailers:
+The `ZFS-CI-Type` trailer set implemented by the CI script is a superset of what the contributing guide documents:
 
 - quick/full overrides documented in `.github/CONTRIBUTING.md:150`
-- implemented in `.github/workflows/scripts/generate-ci-type.py:66`
+- implemented in `.github/workflows/scripts/generate-ci-type.py:66`, which additionally accepts `linux` and `freebsd` platform-only overrides not mentioned in CONTRIBUTING.md
+- current master further auto-detects docs-only PRs and skips the qemu matrix for them
 
 Examples:
 
 ```text
 ZFS-CI-Type: quick
 ZFS-CI-Type: full
+ZFS-CI-Type: linux
+ZFS-CI-Type: freebsd
 ```
 
 ---
