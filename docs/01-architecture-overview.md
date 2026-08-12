@@ -115,6 +115,37 @@ graph TD
 
 ---
 
+## Interlude - Two Entry Points the Stack Diagram Does Not Show
+
+The stack above is the POSIX file path. Two other front doors exist, and both skip layers you might assume are mandatory.
+
+### ZVOL - block-device data path
+
+Zvols are datasets exposed as block devices (`/dev/zd*`), so consumers (VMs, iSCSI targets, swap) enter from the Linux block layer and bypass ZPL/VFS entirely.
+
+Primary code:
+- `module/os/linux/zfs/zvol_os.c` (Linux block-layer glue)
+- `module/zfs/zvol.c` (portable state, ZIL log/replay)
+
+Entry shape (Linux):
+- `zvol_submit_bio()` (bio path) or `zvol_mq_queue_rq()` (blk-mq path) funnel into `zvol_request_impl()`.
+- `zvol_read()` / `zvol_write()` then call `dmu_read_uio_dnode()` / `dmu_write_uio_dnode()` directly, with `zil_commit()` for sync semantics.
+- The portable side in `module/zfs/zvol.c` owns state management and ZIL logging/replay (`zvol_log_write()`, `zvol_replay_write()`).
+
+From the DMU down, zvol I/O rides the same dbuf/ARC/txg/zio machinery as file I/O. The layers it skips are exactly ZPL and the vnode logic.
+
+### Control plane - /dev/zfs ioctls
+
+The `zfs` and `zpool` commands do not use the data path at all. Administrative operations are ioctls on `/dev/zfs`:
+
+- Userland: `lib/libzfs_core/libzfs_core.c` opens `ZFS_DEV` and issues commands via `lzc_ioctl_fd()`; `lib/libzfs/` layers policy on top.
+- Kernel entry (Linux): `zfsdev_ioctl()` in `module/os/linux/zfs/zfs_ioctl_os.c`, registered as `.unlocked_ioctl` in `zfsdev_fops`.
+- Common handler: `zfsdev_ioctl_common()` in `module/zfs/zfs_ioctl.c`, which dispatches through the `zfs_ioc_vec[]` table.
+
+Many control-plane operations become DSL sync tasks that execute inside txg sync, so the control plane and the data path converge at the DSL/txg layer, not before.
+
+---
+
 ## Diagram 2 - Foreground vs Sync Timeline
 
 ```
@@ -558,6 +589,15 @@ Reference headers:
 - `include/sys/spa.h` (`blkptr_t`)
 - `include/sys/zio.h`
 - `include/sys/vdev_impl.h`
+
+One structure worth recognizing early even though it is not on the vertical
+path above: ZAP (ZFS Attribute Processor), implemented in `module/zfs/zap.c`
+and `module/zfs/zap_micro.c`. Directory entries and most name-to-value
+metadata (properties, object tables) are stored as ZAP objects, so ZAP sits
+between ZPL name operations and the DMU. Representative call path: directory
+lookup via `zfs_dirent_lock()` in `module/os/linux/zfs/zfs_dir.c` resolves
+names through `zfs_match_find()`, which calls `zap_lookup()` on the
+directory's ZAP object to map name -> object number.
 
 ---
 

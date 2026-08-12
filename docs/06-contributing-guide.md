@@ -191,6 +191,18 @@ sudo ./scripts/zfs.sh -r
 sudo ./scripts/zfs-tests.sh -t tests/functional/cli_root/zpool_create/zpool_create_001_pos
 ```
 
+Two flag interactions worth knowing:
+
+- `-t` and `-T` cannot be combined; the wrapper fails with
+  "-t and -T are mutually exclusive." (`scripts/zfs-tests.sh:499`).
+- `-T` also accepts a fraction like `1/3` or `2/3` to run that slice of
+  the full test list, which is how one full run gets split across
+  multiple machines (usage text at `scripts/zfs-tests.sh:380`). The
+  split logic (`split_tags()`, `scripts/zfs-tests.sh:214`) expands the
+  fraction into a per-test tag list and interleaves selection by
+  modulus, so each slice gets a balanced mix rather than an
+  alphabetical chunk.
+
 ### Runfiles are first-class test definitions
 
 Example runfile: `tests/runfiles/common.run:19`.
@@ -289,6 +301,26 @@ Upstream reference:
 - summary line <= 72 chars (`.github/CONTRIBUTING.md:207`)
 - wrapped body explaining change and rationale (`.github/CONTRIBUTING.md:209`)
 - required `Signed-off-by:` trailer (`.github/CONTRIBUTING.md:213`)
+
+### Special-case commit message formats
+
+The "Commit Message Formats" section (`.github/CONTRIBUTING.md:204`)
+defines one more first-class format beyond plain new changes:
+
+- Coverity defect fixes (`.github/CONTRIBUTING.md:229`): subject line
+  in the shape `Fix coverity defects: CID dddd, dddd...`, a body that
+  lists each CID and how it was corrected, and the usual
+  `Signed-off-by:` trailer last.
+
+One documentation drift to be aware of: the table of contents still
+links an "OpenZFS Patch Ports" format
+(`.github/CONTRIBUTING.md:31`), but that section body was removed in
+2020 (commit `eb267f08c`). The historical port format used the ported
+commit's summary as the subject (prefixed `OpenZFS dddd, dddd - `),
+`Authored by:`/`Reviewed by:`/`Approved by:`/`Ported-by:` attribution
+lines, and `OpenZFS-issue:`/`OpenZFS-commit:` link trailers. You will
+still see it throughout older git history, but it is no longer a
+documented requirement.
 
 ### CI mode override trailers
 

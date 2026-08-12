@@ -84,6 +84,10 @@ Yes, this is worth mentioning because the encrypted layout reuses words differen
 The encrypted layout is documented directly in `include/sys/spa.h` and is not just a cosmetic flag change:
 
 - parts of the "third DVA area" are reused for encryption parameters (salt/IV fields)
+- `blk_cksum` is split in half for encrypted blocks: 128 bits of checksum
+  plus a 128-bit MAC (words 2 and 3 of the 256-bit checksum field). The
+  layout comment says the MAC "occupies half of the checksum space", so
+  encrypted blocks carry a truncated checksum, not the full 256-bit value.
 - `blk_fill` also carries crypto-related bits (`BP_GET_IV2`/`BP_SET_IV2`)
 - helper macros account for this, for example `BP_GET_ASIZE` and `BP_GET_NDVAS` treat encrypted pointers differently
 
@@ -95,6 +99,7 @@ Practical implication for readers:
 Related macros and comments:
 
 - layout commentary: `include/sys/spa.h:188`
+- MAC-in-checksum commentary: `include/sys/spa.h:250`
 - crypto state helpers: `include/sys/spa.h:452`
 - NDVA/ASIZE handling with encryption: `include/sys/spa.h:552`
 - IV2 in `blk_fill`: `include/sys/spa.h:531`
@@ -238,6 +243,19 @@ Algorithms in the active table include:
 - `skein`, `edonr`, `blake3`
 - special entries like `label`, `gang_header`, `zilog`
 
+Special-entry nuance (flags in the same table):
+
+- the `gang_header`, `zilog`, and `zilog2` entries (and `label`) carry
+  `ZCHECKSUM_FLAG_EMBEDDED` in `zio_checksum_table[...]`.
+- embedded means self-checksumming: the checksum is stored in a `zio_eck_t`
+  inside the block itself (a trailer for gang headers and labels, the
+  `zil_chain_t` field for `zilog2` blocks), not in the parent block
+  pointer's `blk_cksum`.
+- `zio_checksum_compute(...)` and `zio_checksum_error_impl(...)` branch on
+  `ZCHECKSUM_FLAG_EMBEDDED` to write/read that embedded checksum.
+
+Source: `module/zfs/zio_checksum.c:170` (table flags), `include/sys/zio_checksum.h:54` (flag definition), `include/sys/zio.h:58` (`zio_eck_t`).
+
 Pipeline handlers:
 
 - write-time generation: `zio_checksum_generate(...)` (`module/zfs/zio.c:5184`)
@@ -308,6 +326,42 @@ flowchart TD
     M -->|Yes| N["normal BP with DVAs"]
     M -->|No| G["gang block path<br/>gang header + members"]
 ```
+
+---
+
+## Hole Block Pointers
+
+Holes are the third special form: a block pointer with no physical placement at all.
+
+Key facts:
+
+- a hole is a block that was either never written or is entirely zero-filled
+- holes are represented by zeroed `blk_dva` entries; reads of a hole return
+  zeroes without any device I/O
+- the canonical test is `BP_IS_HOLE(...)`: embedded bit clear and `dva[0]`
+  empty (do not test raw words yourself)
+
+Source: `include/sys/spa.h:366` (hole commentary), `include/sys/spa.h:592` (`BP_IS_HOLE`).
+
+Where holes show up in the paths this chapter traces:
+
+- write path: `zio_write_compress(...)` can compress a block away entirely
+  (an all-zero payload yields `psize == 0`); the zio then drops to
+  `ZIO_INTERLOCK_PIPELINE`, skipping checksum, DVA allocation, and vdev I/O,
+  and the resulting bp stays a hole
+- free path: `free_blocks(...)` in `module/zfs/dnode_sync.c` zeroes the bp
+  (`memset`) when file blocks are freed or punched
+
+Hole birth (`SPA_FEATURE_HOLE_BIRTH`):
+
+- with the feature active, a hole punched into previously written data keeps
+  its logical size, DMU object type, and level, and records a logical birth
+  txg (physical birth 0) - the DVAs stay zero, so `BP_IS_HOLE()` remains true
+- this lets incremental `zfs send` transmit only the holes born after the
+  source snapshot instead of every hole
+- never-written holes remain fully zeroed bps (birth txg 0)
+
+Source: `module/zfs/zio.c:2096` (write-path hole with birth), `module/zfs/dnode_sync.c:135` (`free_blocks` hole-birth preservation).
 
 ---
 

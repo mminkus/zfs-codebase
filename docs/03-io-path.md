@@ -135,6 +135,22 @@ And finally:
 
 This means foreground writes are transactional and ordered, but still memory-first at this point.
 
+One caveat on "memory-first": `dmu_tx_assign(tx, DMU_TX_WAIT)` is not
+unconditional in-memory progress.
+
+- if the open txg cannot take the tx (`ERESTART`), assignment retries via
+  `dmu_tx_wait(...)`, which can sleep until a txg syncs out.
+- if pool-wide dirty data has hit `zfs_dirty_data_max`, `dmu_tx_wait()`
+  blocks until the sync thread frees dirty space.
+- even below that hard limit, `dmu_tx_delay(...)` injects an artificial
+  sleep once dirty data crosses
+  `zfs_dirty_data_max * zfs_delay_min_dirty_percent / 100` (60% by
+  default), and the delay grows sharply as dirty data approaches the max.
+
+This is the write throttle (`module/zfs/dmu_tx.c`; see the large block
+comment above `dmu_tx_delay()`). It paces foreground writers to match
+sync-thread throughput instead of letting dirty data grow without bound.
+
 ---
 
 ## Step 4 - Dirtying Happens in Memory (`dbuf`/ARC)
@@ -182,6 +198,13 @@ What ZIL provides:
 Important nuance:
 
 - ZIL is for sync/replay semantics; final long-term pool state still converges through txg sync.
+- `zil_commit()` does not bypass the I/O stack: it packs intent records into
+  log write blocks (lwbs), and `zil_lwb_write_issue()` (`module/zfs/zil.c`)
+  issues each lwb as a real zio (`zio_rewrite(...)` under a `zio_root(...)`,
+  dispatched with `zio_nowait(...)`) immediately, before txg sync runs.
+- net effect: a sync write traverses the ZIO pipeline and vdev layers twice -
+  once right away via the ZIL lwb write, and again later when `spa_sync()`
+  writes the final block tree.
 
 ---
 
@@ -191,17 +214,29 @@ Primary file:
 
 - `module/zfs/txg.c`
 
-Key anchor:
+Key anchors:
 
 - `txg_sync_thread(...)`
+- `txg_quiesce_thread(...)` and `txg_quiesce(...)`
 
 Default timeout behavior:
 
 - `zfs_txg_timeout = 5` seconds (`module/zfs/txg.c`)
 
+Who performs the quiesce:
+
+- `txg_quiesce_thread()` picks the current open txg and calls `txg_quiesce()`.
+- `txg_quiesce()` grabs every per-CPU `tc_open_lock` so no new tx can enter
+  that txg, advances `tx_open_txg` (opening txg N+1 for new writers), then
+  waits for all outstanding tx handles in txg N to be released.
+- the now-quiesced txg is handed to the sync thread via `tx_quiesced_txg`.
+
+So the open -> quiesced transition happens in `txg_quiesce_thread`, before
+the sync thread ever sees the txg.
+
 When a txg is quiesced and ready:
 
-- sync thread calls `spa_sync(spa, txg)`
+- sync thread consumes `tx_quiesced_txg` and calls `spa_sync(spa, txg)`
 
 This is where dirty in-memory intent starts becoming durable on-disk state.
 

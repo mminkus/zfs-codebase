@@ -228,6 +228,37 @@ Dependency query helper:
 
 - `zfeature_depends_on(...)`: `module/zcommon/zfeature_common.c:149`
 
+### Per-Dataset Feature Activation
+
+`ZFEATURE_FLAG_PER_DATASET` features track activity per dataset, not just
+per pool. The API is declared in `include/sys/dsl_dataset.h:500`:
+
+- `dsl_dataset_activate_feature()`: `module/zfs/dsl_dataset.c:1124`
+- `dsl_dataset_deactivate_feature()`: `module/zfs/dsl_dataset.c:1170`
+- `dsl_dataset_feature_is_active()`: `module/zfs/dsl_dataset.c:1099`
+
+How it works (all in `module/zfs/dsl_dataset.c`):
+
+- `dsl_dataset_activate_feature()` VERIFYs the `PER_DATASET` flag,
+  calls `spa_feature_incr()` once, zapifies the dataset object
+  (`dmu_object_zapify()`), and `zap_add()`s an entry keyed by the
+  feature GUID (`fi_guid`) directly on the dataset object.
+- So the pool-level refcount equals the number of datasets with the
+  feature active; the per-dataset state is the GUID-keyed ZAP entry on
+  the dataset object itself.
+- Entry payload follows `fi_type`: `BOOLEAN` stores a single zero
+  uint64, `UINT64_ARRAY` stores the array (redacted datasets).
+- Deactivation is the mirror image: `zap_remove()` plus
+  `spa_feature_decr()`, and the in-memory `ds->ds_feature[f]` slot is
+  cleared.
+- At dataset open, `load_zfeature()` (`module/zfs/dsl_dataset.c:402`)
+  populates `ds->ds_feature[]`; `dsl_dataset_feature_is_active()` only
+  consults that in-memory state.
+
+Because activation zapifies the dataset object, `PER_DATASET` features
+have a hard dependency requirement covered in the add-a-feature steps
+below.
+
 ---
 
 ## Import-Time Compatibility Enforcement
@@ -328,11 +359,15 @@ This is the shortest reliable workflow for contributors.
 1. Add enum value in `include/zfeature_common.h` just before `SPA_FEATURES`.
 2. Register it in `zpool_feature_init()` in `module/zcommon/zfeature_common.c`.
 3. Choose flags deliberately.
-4. Add dependency list ending with `SPA_FEATURE_NONE`.
+4. Add dependency list ending with `SPA_FEATURE_NONE`. Hard constraint: a `ZFEATURE_FLAG_PER_DATASET` feature must list `SPA_FEATURE_EXTENSIBLE_DATASET` in its dependency list; `zfeature_register()` VERIFYs this (`module/zcommon/zfeature_common.c:341`).
 5. Gate behavior with `spa_feature_is_enabled()` and increment/decrement usage with `spa_feature_incr()`/`spa_feature_decr()` in syncing context.
-6. Add/extend tests in `tests/zfs-tests/tests/functional/features/` or the subsystem-specific suite.
+6. Add/extend tests in the owning subsystem's suite under `tests/zfs-tests/tests/functional/`. Recent feature commits do not add tests under `tests/functional/features/`; that directory holds only the legacy `async_destroy` and `large_dnode` tests.
 7. Update `man/man7/zpool-features.7`.
 8. Consider compatibility file implications in `cmd/zpool/compatibility.d/` (installed to `/usr/share/zfs/compatibility.d/`; `/etc/zfs/compatibility.d/` is only the admin-local override path).
+9. Add the `feature@short_name` string to the `properties` array in `tests/zfs-tests/tests/functional/cli_root/zpool_get/zpool_get.cfg` (the feature-name list the `zpool get` CLI tests check; the array starts at `tests/zfs-tests/tests/functional/cli_root/zpool_get/zpool_get.cfg:34`).
+10. Regenerate the libzfs ABI dump with `make storeabi` and commit the updated `lib/libzfs/libzfs.abi` (target defined in `lib/Makefile.am:107`; requires libabigail >= 2.0.0 and only runs on x86_64). CI runs the matching `checkabi` target, so a stale `.abi` file fails CI.
+
+Steps 9 and 10 are easy to verify empirically: recent feature commits such as `large_microzap` (`224393a32`) and physical rewrites (`60f714e6e`) each touch exactly these two files alongside the code change, and neither touches `tests/functional/features/` (`git show --stat 224393a32`).
 
 Two design rules from `module/zfs/zfeature.c` comments are worth keeping front-and-center:
 

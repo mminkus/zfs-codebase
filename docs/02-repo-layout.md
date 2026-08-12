@@ -146,6 +146,15 @@ Key distinction that trips people up:
 
 Use this directory when behavior depends on Linux kernel interfaces, credentials, inode rules, mount plumbing, or block-layer specifics.
 
+Sibling directory worth knowing: `module/os/linux/spl/` is the kernel
+Solaris Portability Layer. It implements Solaris-style primitives (taskqs,
+kmem caches, kstats, condvars, TSD, ...) on top of Linux kernel APIs, in
+files named `spl-*.c` (`spl-taskq.c`, `spl-kmem.c`, `spl-kstat.c`). It is
+Linux-only; FreeBSD supplies its own equivalents under
+`module/os/freebsd/spl/`. The userland counterpart is `lib/libspl/`, which
+provides the same Solaris-style shims to tools and libraries (see the `lib/`
+section below).
+
 ---
 
 ## `module/zcommon/` - Shared Tables and Common Definitions
@@ -162,6 +171,20 @@ If you are adding a new pool feature or property, this directory is almost alway
 
 ---
 
+## Other `module/` Subdirectories - Embedded Support Code
+
+`module/zfs/` and the `module/os/` trees are not the whole kernel build.
+These siblings hold support code, most of them kernel-side counterparts of
+like-named userland libraries in `lib/`:
+
+- `module/avl/`: AVL tree implementation used across subsystems (userland twin: `lib/libavl/`).
+- `module/nvpair/`: name-value pair encoding used for configs, properties, and ioctl payloads (userland twin: `lib/libnvpair/`).
+- `module/icp/`: Illumos Crypto Provider; supplies the crypto primitives behind dataset encryption and cryptographic checksums (userland twin: `lib/libicp/`).
+- `module/lua/`: embedded Lua interpreter that executes channel programs (`zfs program`); the ZFS-side glue is `module/zfs/zcp*.c`.
+- `module/zstd/`: vendored Zstandard library plus glue (`zfs_zstd.c`) for `compression=zstd` (userland twin: `lib/libzstd/`).
+
+---
+
 ## `include/` and `include/sys/` - Header Ground Truth
 
 `include/sys/` mirrors core subsystems and is the fastest way to find major types:
@@ -172,6 +195,13 @@ If you are adding a new pool feature or property, this directory is almost alway
 - ZIO: `zio.h`, `zio_impl.h`
 - VDEV: `vdev.h`, `vdev_impl.h`
 - ARC/dbuf: `arc.h`, `arc_impl.h`, `dbuf.h`
+
+Headers also mirror the `module/os/` split:
+
+- `include/os/linux/` (with `kernel/`, `spl/`, and `zfs/` subtrees) holds Linux-specific headers.
+- `include/os/freebsd/` (with `spl/` and `zfs/` subtrees, plus a small `linux/` compat-shim directory) holds the FreeBSD side.
+
+The usual pattern is a portable contract in `include/sys/` with a platform half under `include/os/<platform>/.../sys/`, distinguished by name: `include/sys/zfs_znode.h` (portable) pairs with `include/os/linux/zfs/sys/zfs_znode_impl.h` (Linux), and `zfs_vnops_os.h` / `zpl.h` live only on the OS side.
 
 One gotcha worth remembering:
 
