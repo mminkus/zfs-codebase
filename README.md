@@ -18,6 +18,8 @@ This isn't "what ZFS is." It's "if you're new to the OpenZFS codebase, here's ho
 
 6. **[Contributing Guide](docs/06-contributing-guide.md)** — Building OpenZFS, running tests, using `zdb`/`zhack`/`ztest`, and submitting changes.
 
+7. **[Pool Import](docs/07-pool-import.md)** — How a pool comes up: userland label scanning, the `spa_load` state machine, trusted vs untrusted configs, MMP, feature gates, rewind, and where imports fail in practice.
+
 ## Source Reference
 
 All source references point to the [OpenZFS repository](https://github.com/openzfs/zfs). Clone it locally to follow along:
