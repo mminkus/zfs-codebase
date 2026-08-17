@@ -20,6 +20,8 @@ This isn't "what ZFS is." It's "if you're new to the OpenZFS codebase, here's ho
 
 7. **[Pool Import](docs/07-pool-import.md)** — How a pool comes up: userland label scanning, the `spa_load` state machine, trusted vs untrusted configs, MMP, feature gates, rewind, and where imports fail in practice.
 
+8. **[Send and Receive](docs/08-send-receive.md)** — The replication path: the stream format as a compatibility contract, the kernel send pipeline, the receive gauntlet, resume tokens, raw sends, and a worked case study of a real stream-contract bug.
+
 ## Source Reference
 
 All source references point to the [OpenZFS repository](https://github.com/openzfs/zfs). Clone it locally to follow along:
