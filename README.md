@@ -24,6 +24,21 @@ This isn't "what ZFS is." It's "if you're new to the OpenZFS codebase, here's ho
 
 9. **[The Debugging Toolbox](docs/09-debugging-toolbox.md)** — zdb, zhack, zinject, ztest, and the kernel-side observability suite; why the userland tools are libzpool pool imports, and what that means in practice.
 
+## Status
+
+The planned series is complete. In August 2026 every chapter was
+cross-referenced claim-by-claim against the OpenZFS source: function
+names, call chains, constants, and line anchors verified at the
+reference revision below.
+
+The guide is maintained: it receives occasional updates as OpenZFS
+evolves. Corrections are welcome -- if a claim here disagrees with the
+OpenZFS source, the source is right and this is a bug.
+
+Possible future chapters, in no particular order: ARC and dbuf
+lifecycle, scrub and resilver, DSL internals and sync tasks, and the
+locking model.
+
 ## Source Reference
 
 All source references point to the [OpenZFS repository](https://github.com/openzfs/zfs). Clone it locally to follow along:
