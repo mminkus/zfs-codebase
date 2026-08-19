@@ -972,5 +972,7 @@ pool bootstrapped the feature state that this chapter's gauntlet
 checks against - `spa_ld_check_features()` is the import-time cousin
 of `recv_begin_check_feature_flags_impl()`.
 
--> Part 9 (planned) - Scrub and Resilver: the other consumer of the
-`traverse_dataset()` machinery the send pipeline is built on.
+-> [Part 9 - The Debugging Toolbox](09-debugging-toolbox.md): the
+tools for inspecting everything this chapter described - including
+`zstream dump` on the streams themselves and zdb on the datasets they
+produce.

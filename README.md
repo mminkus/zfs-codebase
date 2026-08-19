@@ -22,6 +22,8 @@ This isn't "what ZFS is." It's "if you're new to the OpenZFS codebase, here's ho
 
 8. **[Send and Receive](docs/08-send-receive.md)** — The replication path: the stream format as a compatibility contract, the kernel send pipeline, the receive gauntlet, resume tokens, raw sends, and a worked case study of a real stream-contract bug.
 
+9. **[The Debugging Toolbox](docs/09-debugging-toolbox.md)** — zdb, zhack, zinject, ztest, and the kernel-side observability suite; why the userland tools are libzpool pool imports, and what that means in practice.
+
 ## Source Reference
 
 All source references point to the [OpenZFS repository](https://github.com/openzfs/zfs). Clone it locally to follow along:
