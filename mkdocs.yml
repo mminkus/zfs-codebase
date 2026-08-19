@@ -1,0 +1,66 @@
+site_name: How to Read the OpenZFS Codebase
+site_description: A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.
+site_url: https://mminkus.github.io/zfs-codebase/
+repo_url: https://github.com/mminkus/zfs-codebase
+repo_name: mminkus/zfs-codebase
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.action.view
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+nav:
+  - Home: index.md
+  - "Part 1: Architecture Overview": 01-architecture-overview.md
+  - "Part 2: Repository Layout": 02-repo-layout.md
+  - "Part 3: The I/O Path": 03-io-path.md
+  - "Part 4: Block Pointers in Code": 04-block-pointers.md
+  - "Part 5: Feature Flags": 05-feature-flags.md
+  - "Part 6: Contributing Guide": 06-contributing-guide.md
+  - "Part 7: Pool Import": 07-pool-import.md
+  - "Part 8: Send and Receive": 08-send-receive.md
+  - "Part 9: The Debugging Toolbox": 09-debugging-toolbox.md
+
+validation:
+  nav:
+    omitted_files: warn
+  not_found: warn
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - pymdownx.magiclink
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
