@@ -1,0 +1,1446 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/02-repo-layout/">
+      
+      
+        <link rel="prev" href="../01-architecture-overview/">
+      
+      
+        <link rel="next" href="../03-io-path/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 2: Repository Layout - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-2-repository-layout" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 2: Repository Layout
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-architecture-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-this-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How To Use This Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-runtime-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Runtime Boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-level-tree-what-each-folder-is-for" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Tree (What Each Folder Is For)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulezfs-portable-core-kernel-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/zfs/ - Portable Core Kernel Implementation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moduleoslinuxzfs-and-moduleosfreebsd-os-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/os/linux/zfs/ and module/os/freebsd/ - OS Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulezcommon-shared-tables-and-common-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/zcommon/ - Shared Tables and Common Definitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-module-subdirectories-embedded-support-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other module/ Subdirectories - Embedded Support Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#include-and-includesys-header-ground-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        include/ and include/sys/ - Header Ground Truth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lib-userland-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lib/ - Userland Libraries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cmd-binaries-and-developer-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/ - Binaries and Developer Tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-test-framework-and-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tests/ - Test Framework and Suites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contrib-integrations-and-external-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        contrib/ - Integrations and External Helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-packaging-directories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and Packaging Directories
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-2-where-do-i-start-task-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - "Where Do I Start?" Task Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-navigation-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Navigation Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-reading-order-layout-oriented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Reading Order (Layout-Oriented)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-contributing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-pool-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-send-receive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-debugging-toolbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-this-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How To Use This Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-runtime-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Runtime Boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-level-tree-what-each-folder-is-for" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Tree (What Each Folder Is For)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulezfs-portable-core-kernel-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/zfs/ - Portable Core Kernel Implementation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moduleoslinuxzfs-and-moduleosfreebsd-os-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/os/linux/zfs/ and module/os/freebsd/ - OS Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulezcommon-shared-tables-and-common-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        module/zcommon/ - Shared Tables and Common Definitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-module-subdirectories-embedded-support-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other module/ Subdirectories - Embedded Support Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#include-and-includesys-header-ground-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        include/ and include/sys/ - Header Ground Truth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lib-userland-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lib/ - Userland Libraries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cmd-binaries-and-developer-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/ - Binaries and Developer Tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-test-framework-and-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tests/ - Test Framework and Suites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contrib-integrations-and-external-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        contrib/ - Integrations and External Helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-packaging-directories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and Packaging Directories
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-2-where-do-i-start-task-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - "Where Do I Start?" Task Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-navigation-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Navigation Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-reading-order-layout-oriented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Reading Order (Layout-Oriented)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/02-repo-layout.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-2-repository-layout">Part 2 - Repository Layout<a class="headerlink" href="#part-2-repository-layout" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Where things live in OpenZFS, and how to find the right code quickly.</p>
+</blockquote>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>Part 1 gave us the architecture mental model. This chapter maps that model to real directories.</p>
+<p>This is the practical question we are answering:</p>
+<ul>
+<li>"I know what subsystem I care about, but where is that code in the tree?"</li>
+</ul>
+<p>All paths in this chapter are relative to an OpenZFS checkout root (for example <code>zfs/</code> from <code>git clone https://github.com/openzfs/zfs.git</code>).</p>
+<p>Snapshot counts at the pinned reference revision (see README; they
+drift as OpenZFS evolves, but the shape stays the same):</p>
+<ul>
+<li><code>module/zfs</code>: 138 <code>.c</code> files</li>
+<li><code>module/zcommon</code>: 17 <code>.c</code> files</li>
+<li><code>module/os/linux/zfs</code>: 34 <code>.c</code> files</li>
+<li><code>include/sys</code>: 140 headers</li>
+<li><code>tests/zfs-tests/tests/functional</code>: 105 test categories</li>
+</ul>
+<hr />
+<h2 id="how-to-use-this-map">How To Use This Map<a class="headerlink" href="#how-to-use-this-map" title="Permanent link">&para;</a></h2>
+<p>There are three axes you should keep in your head while navigating:</p>
+<ol>
+<li>Runtime context: kernel, shared, or userland.</li>
+<li>Platform scope: portable core vs OS-specific integration.</li>
+<li>Subsystem ownership: SPA, DMU, DSL, ARC, ZIO, VDEV, ZIL, etc.</li>
+</ol>
+<p>If you identify all three, you usually find the right directory in one jump.</p>
+<hr />
+<h2 id="diagram-1-runtime-boundaries">Diagram 1 - Runtime Boundaries<a class="headerlink" href="#diagram-1-runtime-boundaries" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>graph TD
+    subgraph KERNEL["Kernel code"]
+        MZFS["module/zfs&lt;br/&gt;portable core subsystems"]
+        MOSLIN["module/os/linux/zfs&lt;br/&gt;Linux glue and VFS integration"]
+        MOSFB["module/os/freebsd/zfs&lt;br/&gt;FreeBSD glue and VFS integration"]
+    end
+
+    subgraph SHARED["Shared code"]
+        MZCOMMON["module/zcommon&lt;br/&gt;shared tables/definitions"]
+        INCSYS["include/sys&lt;br/&gt;core headers"]
+        INCROOT["include/&lt;br/&gt;shared root headers (for example zfeature_common.h)"]
+    end
+
+    subgraph USERLAND["Userland code"]
+        LIB["lib/&lt;br/&gt;libzfs, libzfs_core, libzpool, ..."]
+        CMD["cmd/&lt;br/&gt;zfs, zpool, zdb, ztest, zhack, ..."]
+        TESTS["tests/&lt;br/&gt;zfs-tests and test-runner"]
+    end
+
+    CMD --&gt; LIB
+    LIB --&gt; INCSYS
+    LIB --&gt; INCROOT
+    MZFS --&gt; INCSYS
+    MOSLIN --&gt; INCSYS
+    MOSFB --&gt; INCSYS
+    MZCOMMON --&gt; INCSYS
+    MZCOMMON --&gt; INCROOT
+
+    style MZFS fill:#d9f7d6,stroke:#333
+    style MOSLIN fill:#d7ecff,stroke:#333
+    style MOSFB fill:#d7ecff,stroke:#333
+    style MZCOMMON fill:#fff4c2,stroke:#333
+    style LIB fill:#f7d9ff,stroke:#333
+    style CMD fill:#f7d9ff,stroke:#333
+    style TESTS fill:#ffe8cc,stroke:#333</code></pre>
+<hr />
+<h2 id="top-level-tree-what-each-folder-is-for">Top-Level Tree (What Each Folder Is For)<a class="headerlink" href="#top-level-tree-what-each-folder-is-for" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>openzfs/
+├── cmd/       user-facing binaries and tools
+├── config/    build-system configuration and probes
+├── contrib/   optional integrations and external helpers
+├── etc/       init/service/runtime config templates
+├── include/   headers used across kernel and userland
+├── lib/       userland libraries
+├── man/       man pages
+├── module/    kernel code (portable + OS-specific)
+├── rpm/       RPM packaging assets
+├── scripts/   build and developer scripts
+├── tests/     test framework and zfs-tests
+└── udev/      udev rules for Linux device handling
+</code></pre></div>
+<p>Two practical anchors:</p>
+<ul>
+<li>If you are debugging behavior, start in <code>module/</code>.</li>
+<li>If you are changing CLI behavior, start in <code>cmd/</code> and usually also touch <code>lib/</code>.</li>
+</ul>
+<hr />
+<h2 id="modulezfs-portable-core-kernel-implementation"><code>module/zfs/</code> - Portable Core Kernel Implementation<a class="headerlink" href="#modulezfs-portable-core-kernel-implementation" title="Permanent link">&para;</a></h2>
+<p>This is the heart of OpenZFS core logic.</p>
+<p>Important point:</p>
+<ul>
+<li><code>module/zfs/</code> is organized mostly by subsystem, not by tutorial layer order.</li>
+</ul>
+<p>High-value subsystem anchors:</p>
+<ul>
+<li>Pool and txg orchestration: <code>spa.c</code>, <code>spa_misc.c</code>, <code>txg.c</code></li>
+<li>Object and transaction core: <code>dmu.c</code>, <code>dmu_tx.c</code>, <code>dnode.c</code>, <code>dmu_objset.c</code></li>
+<li>Dataset/snapshot semantics: <code>dsl_dataset.c</code>, <code>dsl_dir.c</code>, <code>dsl_pool.c</code></li>
+<li>Send/receive replication: <code>dmu_send.c</code>, <code>dmu_recv.c</code></li>
+<li>Cache and buffers: <code>arc.c</code>, <code>dbuf.c</code>, <code>abd.c</code></li>
+<li>I/O engine and integrity: <code>zio.c</code>, <code>zio_checksum.c</code>, <code>zio_compress.c</code></li>
+<li>Allocation and free-space management: <code>metaslab.c</code>, <code>space_map.c</code>, <code>range_tree.c</code></li>
+<li>Storage topology and dispatch: <code>vdev.c</code>, <code>vdev_queue.c</code>, <code>vdev_mirror.c</code>, <code>vdev_raidz.c</code></li>
+<li>Intent logging: <code>zil.c</code></li>
+<li>Attribute/object stores: <code>zap.c</code>, <code>zap_micro.c</code>, <code>zap_leaf.c</code></li>
+</ul>
+<p>When in doubt:</p>
+<ul>
+<li>Find the subsystem noun in the file name (<code>spa_</code>, <code>dsl_</code>, <code>dmu_</code>, <code>vdev_</code>, <code>zio_</code>).</li>
+</ul>
+<hr />
+<h2 id="moduleoslinuxzfs-and-moduleosfreebsd-os-integration"><code>module/os/linux/zfs/</code> and <code>module/os/freebsd/</code> - OS Integration<a class="headerlink" href="#moduleoslinuxzfs-and-moduleosfreebsd-os-integration" title="Permanent link">&para;</a></h2>
+<p>This is where OpenZFS connects to each OS kernel's VFS and device interfaces.</p>
+<p>Linux path:</p>
+<ul>
+<li><code>module/os/linux/zfs/zpl_file.c</code>, <code>zpl_inode.c</code>, <code>zpl_super.c</code></li>
+<li><code>module/os/linux/zfs/zfs_vnops_os.c</code>, <code>zfs_vfsops.c</code></li>
+<li><code>module/os/linux/zfs/vdev_disk.c</code></li>
+</ul>
+<p>Key distinction that trips people up:</p>
+<ul>
+<li>Core vnode operations (<code>zfs_read</code>, <code>zfs_write</code>) are in <code>module/zfs/zfs_vnops.c</code>.</li>
+<li>Linux-specific wrappers and integration paths are in <code>module/os/linux/zfs/zfs_vnops_os.c</code>.</li>
+</ul>
+<p>Use this directory when behavior depends on Linux kernel interfaces, credentials, inode rules, mount plumbing, or block-layer specifics.</p>
+<p>Sibling directory worth knowing: <code>module/os/linux/spl/</code> is the kernel
+Solaris Portability Layer. It implements Solaris-style primitives (taskqs,
+kmem caches, kstats, condvars, TSD, ...) on top of Linux kernel APIs, in
+files named <code>spl-*.c</code> (<code>spl-taskq.c</code>, <code>spl-kmem.c</code>, <code>spl-kstat.c</code>). It is
+Linux-only; FreeBSD supplies its own equivalents under
+<code>module/os/freebsd/spl/</code>. The userland counterpart is <code>lib/libspl/</code>, which
+provides the same Solaris-style shims to tools and libraries (see the <code>lib/</code>
+section below).</p>
+<hr />
+<h2 id="modulezcommon-shared-tables-and-common-definitions"><code>module/zcommon/</code> - Shared Tables and Common Definitions<a class="headerlink" href="#modulezcommon-shared-tables-and-common-definitions" title="Permanent link">&para;</a></h2>
+<p><code>module/zcommon/</code> is compiled into multiple targets and holds code intentionally shared across boundaries.</p>
+<p>Examples:</p>
+<ul>
+<li><code>zfeature_common.c</code> for feature registration tables</li>
+<li><code>zfs_prop.c</code>, <code>zpool_prop.c</code>, <code>zprop_common.c</code> for property definitions</li>
+<li>checksum/property utility code used by more than one build target</li>
+</ul>
+<p>If you are adding a new pool feature or property, this directory is almost always involved.</p>
+<hr />
+<h2 id="other-module-subdirectories-embedded-support-code">Other <code>module/</code> Subdirectories - Embedded Support Code<a class="headerlink" href="#other-module-subdirectories-embedded-support-code" title="Permanent link">&para;</a></h2>
+<p><code>module/zfs/</code> and the <code>module/os/</code> trees are not the whole kernel build.
+These siblings hold support code, most of them kernel-side counterparts of
+like-named userland libraries in <code>lib/</code>:</p>
+<ul>
+<li><code>module/avl/</code>: AVL tree implementation used across subsystems (userland twin: <code>lib/libavl/</code>).</li>
+<li><code>module/nvpair/</code>: name-value pair encoding used for configs, properties, and ioctl payloads (userland twin: <code>lib/libnvpair/</code>).</li>
+<li><code>module/icp/</code>: Illumos Crypto Provider; supplies the crypto primitives behind dataset encryption and cryptographic checksums (userland twin: <code>lib/libicp/</code>).</li>
+<li><code>module/lua/</code>: embedded Lua interpreter that executes channel programs (<code>zfs program</code>); the ZFS-side glue is <code>module/zfs/zcp*.c</code>.</li>
+<li><code>module/zstd/</code>: vendored Zstandard library plus glue (<code>zfs_zstd.c</code>) for <code>compression=zstd</code> (userland twin: <code>lib/libzstd/</code>).</li>
+</ul>
+<hr />
+<h2 id="include-and-includesys-header-ground-truth"><code>include/</code> and <code>include/sys/</code> - Header Ground Truth<a class="headerlink" href="#include-and-includesys-header-ground-truth" title="Permanent link">&para;</a></h2>
+<p><code>include/sys/</code> mirrors core subsystems and is the fastest way to find major types:</p>
+<ul>
+<li>SPA: <code>spa.h</code>, <code>spa_impl.h</code></li>
+<li>DMU: <code>dmu.h</code>, <code>dmu_tx.h</code>, <code>dnode.h</code></li>
+<li>DSL: <code>dsl_dataset.h</code>, <code>dsl_pool.h</code>, <code>dsl_dir.h</code></li>
+<li>ZIO: <code>zio.h</code>, <code>zio_impl.h</code></li>
+<li>VDEV: <code>vdev.h</code>, <code>vdev_impl.h</code></li>
+<li>ARC/dbuf: <code>arc.h</code>, <code>arc_impl.h</code>, <code>dbuf.h</code></li>
+</ul>
+<p>Headers also mirror the <code>module/os/</code> split:</p>
+<ul>
+<li><code>include/os/linux/</code> (with <code>kernel/</code>, <code>spl/</code>, and <code>zfs/</code> subtrees) holds Linux-specific headers.</li>
+<li><code>include/os/freebsd/</code> (with <code>spl/</code> and <code>zfs/</code> subtrees, plus a small <code>linux/</code> compat-shim directory) holds the FreeBSD side.</li>
+</ul>
+<p>The usual pattern is a portable contract in <code>include/sys/</code> with a platform half under <code>include/os/&lt;platform&gt;/.../sys/</code>, distinguished by name: <code>include/sys/zfs_znode.h</code> (portable) pairs with <code>include/os/linux/zfs/sys/zfs_znode_impl.h</code> (Linux), and <code>zfs_vnops_os.h</code> / <code>zpl.h</code> live only on the OS side.</p>
+<p>One gotcha worth remembering:</p>
+<ul>
+<li><code>include/zfeature_common.h</code> is at <code>include/</code> root, not <code>include/sys/</code>.</li>
+</ul>
+<hr />
+<h2 id="lib-userland-libraries"><code>lib/</code> - Userland Libraries<a class="headerlink" href="#lib-userland-libraries" title="Permanent link">&para;</a></h2>
+<p><code>lib/</code> provides the userland API and tooling substrate. At the pinned reference revision there are 12 top-level libraries (current master has since added <code>libbtree/</code> and <code>librange_tree/</code>, userland builds of the like-named kernel data structures):</p>
+<ul>
+<li><code>libzfs/</code> (high-level administrative API used by <code>zfs</code>/<code>zpool</code>)</li>
+<li><code>libzfs_core/</code> (lower-level ioctl interface for programmatic control)</li>
+<li><code>libzpool/</code> (kernel-style core logic built for userland tools like <code>zdb</code>/<code>ztest</code>)</li>
+<li><code>libzutil/</code> (shared utility helpers used across OpenZFS userland)</li>
+<li><code>libzdb/</code> (helpers specific to <code>zdb</code> inspection logic)</li>
+<li><code>libnvpair/</code> (name-value pair encoding used in pool and feature metadata)</li>
+<li><code>libspl/</code> (Solaris Portability Layer shims for userland/kernel portability)</li>
+<li><code>libavl/</code> (AVL tree implementation reused across subsystems)</li>
+<li><code>libefi/</code> (EFI/GPT-related helpers)</li>
+<li><code>libicp/</code> (cryptography provider pieces used by encryption/checksum paths)</li>
+<li><code>libzfsbootenv/</code> (boot environment support helpers)</li>
+<li><code>libzstd/</code> (vendored Zstandard compression library integration)</li>
+</ul>
+<p>How to think about the most commonly touched ones:</p>
+<ul>
+<li><code>libzfs</code>: high-level administrative API used by <code>zfs</code> and <code>zpool</code>.</li>
+<li><code>libzfs_core</code>: lower-level ioctl-driven interface.</li>
+<li><code>libzpool</code>: kernel-style logic linked into userland tools like <code>zdb</code>/<code>ztest</code>.</li>
+</ul>
+<hr />
+<h2 id="cmd-binaries-and-developer-tools"><code>cmd/</code> - Binaries and Developer Tools<a class="headerlink" href="#cmd-binaries-and-developer-tools" title="Permanent link">&para;</a></h2>
+<p><code>cmd/</code> contains both end-user commands and contributor-oriented tools.</p>
+<p>Core admin and inspection tools:</p>
+<ul>
+<li><code>cmd/zfs/</code></li>
+<li><code>cmd/zpool/</code></li>
+<li><code>cmd/zdb/</code></li>
+<li><code>cmd/zed/</code></li>
+</ul>
+<p>Contributor tools you will use often:</p>
+<ul>
+<li><code>cmd/zhack.c</code> for format and feature experiments</li>
+<li><code>cmd/ztest.c</code> for stress and race testing</li>
+<li><code>cmd/zinject/</code> for fault injection</li>
+<li><code>cmd/zstream/</code> for send/receive stream work</li>
+</ul>
+<hr />
+<h2 id="tests-test-framework-and-suites"><code>tests/</code> - Test Framework and Suites<a class="headerlink" href="#tests-test-framework-and-suites" title="Permanent link">&para;</a></h2>
+<p>Primary areas:</p>
+<ul>
+<li><code>tests/test-runner/</code> for execution framework</li>
+<li><code>tests/runfiles/</code> for suite selection</li>
+<li><code>tests/zfs-tests/tests/functional/</code> for functional tests (105 categories)</li>
+<li><code>tests/zfs-tests/tests/perf/</code> for performance tests</li>
+</ul>
+<p>If you add behavior:</p>
+<ul>
+<li>expect to touch <code>tests/zfs-tests/tests/functional/&lt;category&gt;/</code>.</li>
+</ul>
+<hr />
+<h2 id="contrib-integrations-and-external-helpers"><code>contrib/</code> - Integrations and External Helpers<a class="headerlink" href="#contrib-integrations-and-external-helpers" title="Permanent link">&para;</a></h2>
+<p><code>contrib/</code> is for optional integrations and bundled support artifacts that are not the core portable engine.</p>
+<p>In this checkout it includes areas such as:</p>
+<ul>
+<li><code>contrib/dracut/</code>, <code>contrib/initramfs/</code>, <code>contrib/debian/</code> for distro/initramfs integration</li>
+<li><code>contrib/bash_completion.d/</code> for shell completion assets</li>
+<li><code>contrib/pyzfs/</code> for Python bindings/utilities</li>
+<li><code>contrib/bpftrace/</code> for tracing scripts</li>
+<li><code>contrib/pam_zfs_key/</code> for PAM integration</li>
+</ul>
+<p>If you are changing core filesystem behavior, you usually will not start here. If you are packaging, bootstrapping, or integrating OpenZFS into system environments, this directory becomes important quickly.</p>
+<hr />
+<h2 id="build-and-packaging-directories">Build and Packaging Directories<a class="headerlink" href="#build-and-packaging-directories" title="Permanent link">&para;</a></h2>
+<p>These are less exciting but important:</p>
+<ul>
+<li><code>config/</code> and <code>scripts/</code>: configure probes, build helper logic</li>
+<li><code>man/</code>: canonical user-facing documentation updates</li>
+<li><code>etc/</code>: init/service and runtime config templates (pool feature compatibility files live in <code>cmd/zpool/compatibility.d/</code>)</li>
+<li><code>udev/</code>: Linux device rule integration</li>
+<li><code>rpm/</code>: packaging metadata</li>
+</ul>
+<p>Many PRs are blocked in review because code changed but man pages or compatibility files were not updated.</p>
+<hr />
+<h2 id="diagram-2-where-do-i-start-task-map">Diagram 2 - "Where Do I Start?" Task Map<a class="headerlink" href="#diagram-2-where-do-i-start-task-map" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    Q["What are you changing?"]
+
+    Q --&gt; A["File I/O behavior"]
+    Q --&gt; B["Pool layout/allocation"]
+    Q --&gt; C["Feature flag or property"]
+    Q --&gt; D["CLI output/UX"]
+    Q --&gt; E["Test failure only on Linux"]
+
+    A --&gt; A1["module/os/linux/zfs/zpl_file.c"]
+    A --&gt; A2["module/zfs/zfs_vnops.c"]
+    A --&gt; A3["module/zfs/dmu*.c"]
+
+    B --&gt; B1["module/zfs/zio.c"]
+    B --&gt; B2["module/zfs/metaslab.c"]
+    B --&gt; B3["module/zfs/vdev*.c"]
+
+    C --&gt; C1["include/zfeature_common.h"]
+    C --&gt; C2["module/zcommon/zfeature_common.c"]
+    C --&gt; C3["module/zcommon/zfs_prop.c or zpool_prop.c"]
+
+    D --&gt; D1["cmd/zfs or cmd/zpool"]
+    D --&gt; D2["lib/libzfs"]
+    D --&gt; D3["man/"]
+
+    E --&gt; E1["module/os/linux/zfs/*"]
+    E --&gt; E2["tests/zfs-tests/*"]
+
+    style Q fill:#f5f5f5,stroke:#333
+    style A fill:#d7ecff,stroke:#333
+    style B fill:#d9f7d6,stroke:#333
+    style C fill:#fff4c2,stroke:#333
+    style D fill:#f7d9ff,stroke:#333
+    style E fill:#ffe8cc,stroke:#333</code></pre>
+<hr />
+<h2 id="common-navigation-traps">Common Navigation Traps<a class="headerlink" href="#common-navigation-traps" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>module/zfs/zfs_vnops.c</code> vs <code>module/os/linux/zfs/zfs_vnops_os.c</code>:
+<code>zfs_vnops.c</code> is core vnode logic; <code>zfs_vnops_os.c</code> is Linux glue.</li>
+<li><code>include/zfeature_common.h</code> location:
+it lives under <code>include/</code>, not <code>include/sys/</code>.</li>
+<li><code>libzpool</code> context:
+it is userland, but reads like kernel code by design.</li>
+<li><code>module/zcommon/</code> role:
+shared code, not "misc leftovers."</li>
+<li>Test location assumptions:
+most behavior tests are in <code>tests/zfs-tests/tests/functional/</code>, not under subsystem directories in <code>module/</code>.</li>
+</ol>
+<hr />
+<h2 id="practical-reading-order-layout-oriented">Practical Reading Order (Layout-Oriented)<a class="headerlink" href="#practical-reading-order-layout-oriented" title="Permanent link">&para;</a></h2>
+<p>Use this pass when your goal is orientation rather than deep subsystem mastery:</p>
+<p>For a call-flow-oriented reading order (foreground path, txg sync, and durable commit semantics), see <a href="../01-architecture-overview/#practical-reading-order-for-new-contributors">Part 1's reading order</a>.</p>
+<ol>
+<li>Top-level tree (<code>cmd</code>, <code>lib</code>, <code>module</code>, <code>include</code>, <code>tests</code>)</li>
+<li><code>module/zfs/</code> high-level file scan (<code>spa*</code>, <code>dmu*</code>, <code>dsl*</code>, <code>zio*</code>, <code>vdev*</code>)</li>
+<li><code>module/os/linux/zfs/</code> for OS boundary understanding</li>
+<li><code>include/sys/</code> for type and API anchors</li>
+<li><code>module/zcommon/</code> for shared definitions</li>
+<li><code>cmd/</code> + <code>lib/</code> pairings for userland behavior</li>
+<li><code>tests/zfs-tests/tests/functional/</code> categories for coverage map</li>
+</ol>
+<hr />
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>-&gt; <a href="../03-io-path/">Part 3 - The I/O Path</a>: trace a write end-to-end with concrete function-level control flow.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../01-architecture-overview/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Part 1: Architecture Overview">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Part 1: Architecture Overview
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../03-io-path/" class="md-footer__link md-footer__link--next" aria-label="Next: Part 3: The I/O Path">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Part 3: The I/O Path
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

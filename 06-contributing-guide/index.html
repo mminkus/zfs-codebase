@@ -1,0 +1,1722 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/06-contributing-guide/">
+      
+      
+        <link rel="prev" href="../05-feature-flags/">
+      
+      
+        <link rel="next" href="../07-pool-import/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 6: Contributing Guide - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-6-contributing-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 6: Contributing Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-architecture-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-repo-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-contributor-feedback-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Contributor Feedback Loop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-for-development-not-just-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build for Development (Not Just Installation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-tree-runtime-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-Tree Runtime Helpers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In-Tree Runtime Helpers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scriptszfssh-loadunload-module-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scripts/zfs.sh - load/unload module stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scriptszfs-helperssh-in-tree-helper-symlinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scripts/zfs-helpers.sh - in-tree helper symlinks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style-and-static-checks-before-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Style and Static Checks Before Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-strategy-narrow-to-wide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Strategy: Narrow to Wide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Strategy: Narrow to Wide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-2-test-pyramid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Test Pyramid
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zfs-test-suite-internals-you-should-know" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZFS Test Suite Internals You Should Know
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ZFS Test Suite Internals You Should Know">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs-testssh-wrapper-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs-tests.sh wrapper behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runfiles-are-first-class-test-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runfiles are first-class test definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-runner-options-you-actually-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        test-runner options you actually use
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-and-registering-new-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing and Registering New Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#essential-debugvalidation-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Essential Debug/Validation Tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Essential Debug/Validation Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zdb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zhack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zhack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zinject" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zinject
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ztest-and-zloopsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ztest and zloop.sh
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-request-and-commit-expectations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Request and Commit Expectations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pull Request and Commit Expectations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-pr-expectations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core PR expectations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commit-message-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit message requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#special-case-commit-message-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Special-case commit message formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-mode-override-trailers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI mode override trailers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-first-patch-playbook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical First-Patch Playbook
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#series-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Series Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-pool-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-send-receive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-debugging-toolbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-contributor-feedback-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Contributor Feedback Loop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-for-development-not-just-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build for Development (Not Just Installation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-tree-runtime-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-Tree Runtime Helpers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In-Tree Runtime Helpers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scriptszfssh-loadunload-module-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scripts/zfs.sh - load/unload module stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scriptszfs-helperssh-in-tree-helper-symlinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scripts/zfs-helpers.sh - in-tree helper symlinks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style-and-static-checks-before-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Style and Static Checks Before Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-strategy-narrow-to-wide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Strategy: Narrow to Wide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Strategy: Narrow to Wide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-2-test-pyramid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Test Pyramid
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zfs-test-suite-internals-you-should-know" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZFS Test Suite Internals You Should Know
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ZFS Test Suite Internals You Should Know">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs-testssh-wrapper-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs-tests.sh wrapper behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runfiles-are-first-class-test-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runfiles are first-class test definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-runner-options-you-actually-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        test-runner options you actually use
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-and-registering-new-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing and Registering New Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#essential-debugvalidation-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Essential Debug/Validation Tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Essential Debug/Validation Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zdb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zhack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zhack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zinject" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zinject
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ztest-and-zloopsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ztest and zloop.sh
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-request-and-commit-expectations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Request and Commit Expectations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pull Request and Commit Expectations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-pr-expectations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core PR expectations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commit-message-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit message requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#special-case-commit-message-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Special-case commit message formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-mode-override-trailers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI mode override trailers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-first-patch-playbook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical First-Patch Playbook
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#series-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Series Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/06-contributing-guide.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-6-contributing-guide">Part 6 - Contributing Guide<a class="headerlink" href="#part-6-contributing-guide" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>A practical path from "I can read the code" to "I can land useful patches."</p>
+</blockquote>
+<h2 id="why-this-chapter-matters">Why This Chapter Matters<a class="headerlink" href="#why-this-chapter-matters" title="Permanent link">&para;</a></h2>
+<p>OpenZFS contribution work usually fails for process reasons, not technical reasons:</p>
+<ul>
+<li>changes are too broad</li>
+<li>tests are run too late</li>
+<li>style/commit expectations are discovered at PR time</li>
+<li>debugging setup is weak</li>
+</ul>
+<p>This chapter is about building a repeatable developer loop so feedback comes early and cheaply.</p>
+<hr />
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>This chapter focuses on:</p>
+<ol>
+<li>development-oriented build setup</li>
+<li>in-tree helper scripts for faster local iteration</li>
+<li>test strategy from targeted checks to stress loops</li>
+<li>how the ZFS Test Suite is wired (runfiles, test-runner, test scripts)</li>
+<li>submission expectations from OpenZFS's own contributing guide</li>
+</ol>
+<hr />
+<h2 id="diagram-1-contributor-feedback-loop">Diagram 1 - Contributor Feedback Loop<a class="headerlink" href="#diagram-1-contributor-feedback-loop" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    A["Pick a scoped change"] --&gt; B["Build debug tree"]
+    B --&gt; C["Run style checks"]
+    C --&gt; D["Run targeted tests"]
+    D --&gt; E["Run broader stress/functional tests"]
+    E --&gt; F["Prepare commit + signoff"]
+    F --&gt; G["Open PR + CI feedback"]
+    G --&gt; A</code></pre>
+<hr />
+<h2 id="build-for-development-not-just-installation">Build for Development (Not Just Installation)<a class="headerlink" href="#build-for-development-not-just-installation" title="Permanent link">&para;</a></h2>
+<p>Primary references:</p>
+<ul>
+<li>top-level project intro: <code>README.md:1</code></li>
+<li>debug recommendation: <code>.github/CONTRIBUTING.md:49</code></li>
+<li>build/check targets: <code>Makefile.am:106</code></li>
+</ul>
+<p>The minimum development loop is:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/openzfs/zfs.git
+<span class="nb">cd</span><span class="w"> </span>zfs
+./autogen.sh
+./configure<span class="w"> </span>--enable-debug
+make<span class="w"> </span>-j<span class="s2">"</span><span class="k">$(</span>nproc<span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<p>After building kernel-side changes, reload the in-tree modules before testing:</p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>./scripts/zfs.sh<span class="w"> </span>-r
+</code></pre></div>
+<p>Why <code>--enable-debug</code> matters:</p>
+<ul>
+<li>OpenZFS upstream explicitly recommends it for development (<code>.github/CONTRIBUTING.md:51</code>)</li>
+<li>it enables ASSERT-heavy validation paths that catch problems earlier</li>
+</ul>
+<p>Useful build targets:</p>
+<ul>
+<li><code>make checkstyle</code> (<code>Makefile.am:111</code>)</li>
+<li><code>make lint</code> (<code>Makefile.am:165</code>)</li>
+<li><code>make pkg-utils</code> for utility/test packaging workflows (<code>tests/README.md:9</code>)</li>
+<li><code>make ctags</code>, <code>make cscopelist</code> for source navigation (<code>Makefile.am:187</code>, <code>Makefile.am:199</code>)</li>
+</ul>
+<hr />
+<h2 id="in-tree-runtime-helpers">In-Tree Runtime Helpers<a class="headerlink" href="#in-tree-runtime-helpers" title="Permanent link">&para;</a></h2>
+<p>For fast local iteration, OpenZFS ships helper scripts in <code>scripts/</code>.</p>
+<h3 id="scriptszfssh-loadunload-module-stack"><code>scripts/zfs.sh</code> - load/unload module stack<a class="headerlink" href="#scriptszfssh-loadunload-module-stack" title="Permanent link">&para;</a></h3>
+<p>Source: <code>scripts/zfs.sh:1</code>.</p>
+<p>What it gives you:</p>
+<ul>
+<li>controlled module reload (<code>-r</code>), unload (<code>-u</code>), verbose mode (<code>-v</code>)</li>
+<li>Linux and FreeBSD handling in one script</li>
+<li>root checks and safety checks for missing/loaded modules</li>
+</ul>
+<h3 id="scriptszfs-helperssh-in-tree-helper-symlinks"><code>scripts/zfs-helpers.sh</code> - in-tree helper symlinks<a class="headerlink" href="#scriptszfs-helperssh-in-tree-helper-symlinks" title="Permanent link">&para;</a></h3>
+<p>Source: <code>scripts/zfs-helpers.sh:4</code>.</p>
+<p>What it gives you:</p>
+<ul>
+<li>installs/removes helper symlinks for in-tree development</li>
+<li>lets you iterate on helper scripts without full reinstall cycles</li>
+<li>supports dry-run and verbose modes for safer setup</li>
+</ul>
+<hr />
+<h2 id="style-and-static-checks-before-tests">Style and Static Checks Before Tests<a class="headerlink" href="#style-and-static-checks-before-tests" title="Permanent link">&para;</a></h2>
+<p>Primary references:</p>
+<ul>
+<li>contributor expectation: run <code>make checkstyle</code> (<code>.github/CONTRIBUTING.md:153</code>)</li>
+<li>checkstyle wiring: <code>Makefile.am:111</code></li>
+<li>commit message checks integrated in <code>checkstyle</code>: <code>Makefile.am:114</code></li>
+</ul>
+<p>What <code>checkstyle</code> covers in-tree:</p>
+<ul>
+<li>code checks (<code>codecheck</code>)</li>
+<li>commit message checks (<code>scripts/commitcheck.sh</code>)</li>
+<li><code>cstyle.pl</code> formatting/style checks over C sources</li>
+</ul>
+<p>Style baseline is illumos/Solaris-derived C style (hard tabs, K&amp;R-style braces, and strict spacing rules), enforced by <code>cstyle.pl</code> and the project conventions in <code>.github/CONTRIBUTING.md</code>.</p>
+<p>Recommended pre-test sequence:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>checkstyle
+make<span class="w"> </span>lint
+</code></pre></div>
+<p>This catches low-cost failures before expensive integration testing.</p>
+<hr />
+<h2 id="testing-strategy-narrow-to-wide">Testing Strategy: Narrow to Wide<a class="headerlink" href="#testing-strategy-narrow-to-wide" title="Permanent link">&para;</a></h2>
+<p>Think in layers:</p>
+<ol>
+<li>one changed path or one test</li>
+<li>focused functional category</li>
+<li>stress/fault loops</li>
+</ol>
+<h3 id="diagram-2-test-pyramid">Diagram 2 - Test Pyramid<a class="headerlink" href="#diagram-2-test-pyramid" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TD
+    A["Single test (-t path)"] --&gt; B["Subset by tags/runfile"]
+    B --&gt; C["Broader zfs-tests.sh runs"]
+    C --&gt; D["zloop.sh and ztest stress loops"]</code></pre>
+<hr />
+<h2 id="zfs-test-suite-internals-you-should-know">ZFS Test Suite Internals You Should Know<a class="headerlink" href="#zfs-test-suite-internals-you-should-know" title="Permanent link">&para;</a></h2>
+<p>Primary references:</p>
+<ul>
+<li>test suite guide: <code>tests/README.md:1</code></li>
+<li>zfs-tests wrapper script: <code>scripts/zfs-tests.sh:1</code></li>
+<li>runfile packaging location: <code>tests/Makefile.am:18</code></li>
+<li>canonical runfiles: <code>tests/runfiles/common.run:1</code></li>
+<li>test-runner implementation: <code>tests/test-runner/bin/test-runner.py.in:1</code></li>
+</ul>
+<h3 id="zfs-testssh-wrapper-behavior"><code>zfs-tests.sh</code> wrapper behavior<a class="headerlink" href="#zfs-testssh-wrapper-behavior" title="Permanent link">&para;</a></h3>
+<p>From <code>scripts/zfs-tests.sh</code>:</p>
+<ul>
+<li>default runfiles are <code>common.run</code> and platform runfile (<code>scripts/zfs-tests.sh:45</code>)</li>
+<li>wrapper can create sparse-file/loopback test disks</li>
+<li>cleanup modes include dangerous full cleanup (<code>-x</code>)</li>
+</ul>
+<p>From <code>tests/README.md</code>, practical usage:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># from installed tree</span>
+sudo<span class="w"> </span>/usr/share/zfs/zfs-tests.sh
+
+<span class="c1"># from source tree</span>
+./scripts/zfs-tests.sh
+
+<span class="c1"># targeted execution examples</span>
+./scripts/zfs-tests.sh<span class="w"> </span>-T<span class="w"> </span>functional
+./scripts/zfs-tests.sh<span class="w"> </span>-t<span class="w"> </span>tests/functional/cli_root/zpool_create/zpool_create_001_pos
+</code></pre></div>
+<p>For a concrete source-tree single-test loop after local changes:</p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>./scripts/zfs.sh<span class="w"> </span>-r
+sudo<span class="w"> </span>./scripts/zfs-tests.sh<span class="w"> </span>-t<span class="w"> </span>tests/functional/cli_root/zpool_create/zpool_create_001_pos
+</code></pre></div>
+<p>Two flag interactions worth knowing:</p>
+<ul>
+<li><code>-t</code> and <code>-T</code> cannot be combined; the wrapper fails with
+  "-t and -T are mutually exclusive." (<code>scripts/zfs-tests.sh:499</code>).</li>
+<li><code>-T</code> also accepts a fraction like <code>1/3</code> or <code>2/3</code> to run that slice of
+  the full test list, which is how one full run gets split across
+  multiple machines (usage text at <code>scripts/zfs-tests.sh:380</code>). The
+  split logic (<code>split_tags()</code>, <code>scripts/zfs-tests.sh:214</code>) expands the
+  fraction into a per-test tag list and interleaves selection by
+  modulus, so each slice gets a balanced mix rather than an
+  alphabetical chunk.</li>
+</ul>
+<h3 id="runfiles-are-first-class-test-definitions">Runfiles are first-class test definitions<a class="headerlink" href="#runfiles-are-first-class-test-definitions" title="Permanent link">&para;</a></h3>
+<p>Example runfile: <code>tests/runfiles/common.run:19</code>.</p>
+<p>Runfiles define:</p>
+<ul>
+<li>pre/post scripts</li>
+<li>timeouts</li>
+<li>tags</li>
+<li>explicit test lists per directory/group</li>
+</ul>
+<p>This is why changing test coverage often involves both test scripts and runfile updates.</p>
+<h3 id="test-runner-options-you-actually-use">test-runner options you actually use<a class="headerlink" href="#test-runner-options-you-actually-use" title="Permanent link">&para;</a></h3>
+<p>Option parser: <code>tests/test-runner/bin/test-runner.py.in:1173</code>.</p>
+<p>Common flags:</p>
+<ul>
+<li><code>-c</code> runfiles</li>
+<li><code>-i</code> test tree root</li>
+<li><code>-T</code> tags</li>
+<li><code>-t</code> timeout</li>
+<li><code>-I</code> iterations</li>
+<li><code>-q</code> quiet summary-focused output</li>
+</ul>
+<hr />
+<h2 id="writing-and-registering-new-tests">Writing and Registering New Tests<a class="headerlink" href="#writing-and-registering-new-tests" title="Permanent link">&para;</a></h2>
+<p>Primary references:</p>
+<ul>
+<li>add-test walkthrough: <code>tests/README.md:158</code></li>
+<li>generated test file lists and regeneration guidance: <code>tests/zfs-tests/tests/Makefile.am:36</code></li>
+<li>regen target at repo root: <code>Makefile.am:183</code></li>
+</ul>
+<p>Practical workflow:</p>
+<ol>
+<li>Copy an existing nearby test as template.</li>
+<li>Use the existing shell test helper patterns (<code>log_must</code>, <code>log_mustnot</code>, cleanup hooks) as shown in <code>tests/README.md:226</code>.</li>
+<li>Register the new file in the appropriate test <code>Makefile.am</code>.</li>
+<li>Update runfile coverage if needed (<code>tests/runfiles/*.run</code>).</li>
+<li>If list generation drift occurs, run <code>make regen-tests</code>.</li>
+</ol>
+<p>Tip:</p>
+<ul>
+<li>keep new tests narrowly scoped to one behavior; broad "integration mega-tests" are harder to debug and review.</li>
+</ul>
+<hr />
+<h2 id="essential-debugvalidation-tools">Essential Debug/Validation Tools<a class="headerlink" href="#essential-debugvalidation-tools" title="Permanent link">&para;</a></h2>
+<h3 id="zdb"><code>zdb</code><a class="headerlink" href="#zdb" title="Permanent link">&para;</a></h3>
+<ul>
+<li>sources: <code>cmd/zdb/</code>, man page <code>man/man8/zdb.8</code></li>
+<li>use for pool/object/block introspection</li>
+<li>especially valuable when validating on-disk effects of kernel changes</li>
+</ul>
+<h3 id="zhack"><code>zhack</code><a class="headerlink" href="#zhack" title="Permanent link">&para;</a></h3>
+<ul>
+<li>source: <code>cmd/zhack.c:29</code></li>
+<li>explicitly documented as unsafe pool mutation tool for testing</li>
+<li>good for controlled feature-flag and label experiments on disposable pools</li>
+</ul>
+<h3 id="zinject"><code>zinject</code><a class="headerlink" href="#zinject" title="Permanent link">&para;</a></h3>
+<ul>
+<li>source: <code>cmd/zinject/zinject.c:286</code></li>
+<li>fault injection across device/data-path scenarios</li>
+<li>useful for validating recovery/error-handling paths that are hard to trigger naturally</li>
+</ul>
+<h3 id="ztest-and-zloopsh"><code>ztest</code> and <code>zloop.sh</code><a class="headerlink" href="#ztest-and-zloopsh" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ztest</code> stress framework: <code>cmd/ztest.c:37</code></li>
+<li>usage/help entry: <code>cmd/ztest.c:867</code></li>
+<li><code>zloop.sh</code> repeatedly runs randomized <code>ztest</code> and captures crash artifacts: <code>scripts/zloop.sh:48</code></li>
+<li>compared to one long <code>ztest -T ...</code> run, <code>zloop.sh</code> intentionally varies run parameters across iterations and preserves failing run context/artifacts for reproduction</li>
+</ul>
+<hr />
+<h2 id="pull-request-and-commit-expectations">Pull Request and Commit Expectations<a class="headerlink" href="#pull-request-and-commit-expectations" title="Permanent link">&para;</a></h2>
+<p>Primary source: <code>.github/CONTRIBUTING.md</code>.</p>
+<p>Upstream reference:</p>
+<ul>
+<li><a href="https://github.com/openzfs/zfs/blob/master/.github/CONTRIBUTING.md">https://github.com/openzfs/zfs/blob/master/.github/CONTRIBUTING.md</a></li>
+</ul>
+<h3 id="core-pr-expectations">Core PR expectations<a class="headerlink" href="#core-pr-expectations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>base on current <code>master</code> for normal development (<code>.github/CONTRIBUTING.md:129</code>)</li>
+<li>keep PRs scoped; ideally one issue-focused commit (<code>.github/CONTRIBUTING.md:131</code>)</li>
+<li>all CI checks must pass before merge (<code>.github/CONTRIBUTING.md:159</code>)</li>
+</ul>
+<h3 id="commit-message-requirements">Commit message requirements<a class="headerlink" href="#commit-message-requirements" title="Permanent link">&para;</a></h3>
+<ul>
+<li>summary line &lt;= 72 chars (<code>.github/CONTRIBUTING.md:207</code>)</li>
+<li>wrapped body explaining change and rationale (<code>.github/CONTRIBUTING.md:209</code>)</li>
+<li>required <code>Signed-off-by:</code> trailer (<code>.github/CONTRIBUTING.md:213</code>)</li>
+</ul>
+<h3 id="special-case-commit-message-formats">Special-case commit message formats<a class="headerlink" href="#special-case-commit-message-formats" title="Permanent link">&para;</a></h3>
+<p>The "Commit Message Formats" section (<code>.github/CONTRIBUTING.md:204</code>)
+defines one more first-class format beyond plain new changes:</p>
+<ul>
+<li>Coverity defect fixes (<code>.github/CONTRIBUTING.md:229</code>): subject line
+  in the shape <code>Fix coverity defects: CID dddd, dddd...</code>, a body that
+  lists each CID and how it was corrected, and the usual
+  <code>Signed-off-by:</code> trailer last.</li>
+</ul>
+<p>One documentation drift to be aware of: the table of contents still
+links an "OpenZFS Patch Ports" format
+(<code>.github/CONTRIBUTING.md:31</code>), but that section body was removed in
+2020 (commit <code>eb267f08c</code>). The historical port format used the ported
+commit's summary as the subject (prefixed <code>OpenZFS dddd, dddd -</code>),
+<code>Authored by:</code>/<code>Reviewed by:</code>/<code>Approved by:</code>/<code>Ported-by:</code> attribution
+lines, and <code>OpenZFS-issue:</code>/<code>OpenZFS-commit:</code> link trailers. You will
+still see it throughout older git history, but it is no longer a
+documented requirement.</p>
+<h3 id="ci-mode-override-trailers">CI mode override trailers<a class="headerlink" href="#ci-mode-override-trailers" title="Permanent link">&para;</a></h3>
+<p>The <code>ZFS-CI-Type</code> trailer set implemented by the CI script is a superset of what the contributing guide documents:</p>
+<ul>
+<li>quick/full overrides documented in <code>.github/CONTRIBUTING.md:150</code></li>
+<li>implemented in <code>.github/workflows/scripts/generate-ci-type.py:66</code>, which additionally accepts <code>linux</code> and <code>freebsd</code> platform-only overrides not mentioned in CONTRIBUTING.md</li>
+<li>current master further auto-detects docs-only PRs and skips the qemu matrix for them</li>
+</ul>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span><code>ZFS-CI-Type: quick
+ZFS-CI-Type: full
+ZFS-CI-Type: linux
+ZFS-CI-Type: freebsd
+</code></pre></div>
+<hr />
+<h2 id="further-resources">Further Resources<a class="headerlink" href="#further-resources" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Main PR and commit procedure: <a href="https://github.com/openzfs/zfs/blob/master/.github/CONTRIBUTING.md">https://github.com/openzfs/zfs/blob/master/.github/CONTRIBUTING.md</a></li>
+<li>OpenZFS "Participate": <a href="https://openzfs.org/wiki/Participate">https://openzfs.org/wiki/Participate</a></li>
+<li>OpenZFS "Developer resources": <a href="https://openzfs.org/wiki/Developer_resources">https://openzfs.org/wiki/Developer_resources</a></li>
+<li>OpenZFS GitHub contribution entrypoint: <a href="https://github.com/openzfs/zfs/contribute">https://github.com/openzfs/zfs/contribute</a></li>
+</ul>
+<hr />
+<h2 id="practical-first-patch-playbook">Practical First-Patch Playbook<a class="headerlink" href="#practical-first-patch-playbook" title="Permanent link">&para;</a></h2>
+<p>This is a reliable starter sequence for new contributors:</p>
+<ol>
+<li>Pick one small behavior fix in one subsystem file.</li>
+<li>Build with <code>--enable-debug</code>.</li>
+<li>Run <code>make checkstyle</code>.</li>
+<li>Run one targeted test that reproduces/guards the behavior.</li>
+<li>Run a broader relevant suite slice (<code>zfs-tests.sh</code> by tag or runfile).</li>
+<li>Commit with signoff (<code>git commit -s</code>).</li>
+<li>Open PR with a short reproduction/validation note.</li>
+</ol>
+<p>If your change touches on-disk format behavior:</p>
+<ol>
+<li>Also add a focused test.</li>
+<li>Validate with <code>zdb</code>/<code>zhack</code> on disposable pools.</li>
+<li>Cross-check with Part 5 feature-flag workflow.</li>
+</ol>
+<hr />
+<h2 id="series-recap">Series Recap<a class="headerlink" href="#series-recap" title="Permanent link">&para;</a></h2>
+<p>You now have a complete map from architecture to contribution workflow:</p>
+<ol>
+<li><a href="../01-architecture-overview/">Part 1 - Architecture Overview</a></li>
+<li><a href="../02-repo-layout/">Part 2 - Repository Layout</a></li>
+<li><a href="../03-io-path/">Part 3 - The I/O Path</a></li>
+<li><a href="../04-block-pointers/">Part 4 - Block Pointers in Code</a></li>
+<li><a href="../05-feature-flags/">Part 5 - Feature Flags in Code</a></li>
+<li><a href="./">Part 6 - Contributing Guide</a></li>
+</ol>
+<p>This is enough to start making small, high-quality OpenZFS patches confidently.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../05-feature-flags/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Part 5: Feature Flags">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Part 5: Feature Flags
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../07-pool-import/" class="md-footer__link md-footer__link--next" aria-label="Next: Part 7: Pool Import">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Part 7: Pool Import
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1924 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/07-pool-import/">
+      
+      
+        <link rel="prev" href="../06-contributing-guide/">
+      
+      
+        <link rel="next" href="../08-send-receive/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 7: Pool Import - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-7-pool-import-how-a-pool-comes-up" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 7: Pool Import
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-architecture-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-repo-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-contributing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-two-phase-import-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Two-Phase Import Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-cli-entry-zpool_do_import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - CLI Entry: zpool_do_import()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-userland-label-scanning-libzutil" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Userland Label Scanning (libzutil)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-the-ioctl-handoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - The Ioctl Handoff
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-spa_import-and-the-rewind-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - spa_import() and the Rewind Driver
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-the-kernel-load-state-machine-spa_load_impl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - The Kernel Load State Machine: spa_load_impl()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 5 - The Kernel Load State Machine: spa_load_impl()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-2-stage-order-mermaid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Stage Order (Mermaid)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5a-spa_ld_mos_init-spac5750" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5a - spa_ld_mos_init() (spa.c:5750)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5b-untrusted-vs-trusted-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5b - Untrusted vs Trusted Config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5c-checkpoint-rewind-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5c - Checkpoint Rewind Branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5d-mos-wide-stages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5d - MOS-Wide Stages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5e-writeable-only-tail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5e - Writeable-Only Tail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-stage-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Stage Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Stage Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberblock-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uberblock Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mmp-activity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MMP Activity Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feature-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zil-claim-why-import-commits-a-txg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZIL Claim - Why Import Commits a txg
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-for-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability for Debugging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observability for Debugging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs_dbgmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs_dbgmsg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-progress-kstat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Progress kstat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#userland-error-strings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Userland Error Strings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-imports-fail-in-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Imports Fail in Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#freebsd-parity-brief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FreeBSD Parity (Brief)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-send-receive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-debugging-toolbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-two-phase-import-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Two-Phase Import Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-cli-entry-zpool_do_import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - CLI Entry: zpool_do_import()
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-userland-label-scanning-libzutil" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Userland Label Scanning (libzutil)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-the-ioctl-handoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - The Ioctl Handoff
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-spa_import-and-the-rewind-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - spa_import() and the Rewind Driver
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-the-kernel-load-state-machine-spa_load_impl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - The Kernel Load State Machine: spa_load_impl()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 5 - The Kernel Load State Machine: spa_load_impl()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-2-stage-order-mermaid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Stage Order (Mermaid)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5a-spa_ld_mos_init-spac5750" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5a - spa_ld_mos_init() (spa.c:5750)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5b-untrusted-vs-trusted-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5b - Untrusted vs Trusted Config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5c-checkpoint-rewind-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5c - Checkpoint Rewind Branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5d-mos-wide-stages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5d - MOS-Wide Stages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5e-writeable-only-tail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5e - Writeable-Only Tail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-stage-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Stage Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Stage Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberblock-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uberblock Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mmp-activity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MMP Activity Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feature-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zil-claim-why-import-commits-a-txg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZIL Claim - Why Import Commits a txg
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-for-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability for Debugging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observability for Debugging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs_dbgmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs_dbgmsg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-progress-kstat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Progress kstat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#userland-error-strings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Userland Error Strings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-imports-fail-in-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Imports Fail in Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#freebsd-parity-brief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FreeBSD Parity (Brief)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/07-pool-import.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-7-pool-import-how-a-pool-comes-up">Part 7 - Pool Import: How a Pool Comes Up<a class="headerlink" href="#part-7-pool-import-how-a-pool-comes-up" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Import is a state machine that must bootstrap trust from raw device labels.</p>
+</blockquote>
+<h2 id="why-this-chapter-matters">Why This Chapter Matters<a class="headerlink" href="#why-this-chapter-matters" title="Permanent link">&para;</a></h2>
+<p>Import is the most-debugged path in ZFS operations. When a pool will not
+import, the failure can originate in userland device scanning, in uberblock
+selection, in the MMP activity check, in feature gating, or deep in MOS
+loading - and the error you see at the CLI is often several layers removed
+from the code that produced it.</p>
+<p>This chapter answers one question: "where do I look when a pool will not
+import". It traces <code>zpool import &lt;pool&gt;</code> end to end and maps observable
+symptoms back to the stage functions that produce them.</p>
+<p>The core structural insight up front:</p>
+<ul>
+<li>Import runs in two phases: userland discovery (reading labels directly
+  from devices) and kernel load (a staged <code>spa_ld_*</code> state machine).</li>
+<li>The kernel never trusts the config userland hands it. It re-derives the
+  config from the MOS and may restart the whole load with the trusted copy.</li>
+</ul>
+<hr />
+<h2 id="scope-and-assumptions">Scope and Assumptions<a class="headerlink" href="#scope-and-assumptions" title="Permanent link">&para;</a></h2>
+<p>To keep the trace concrete, we assume:</p>
+<ul>
+<li>Linux platform, non-root pool, <code>zpool import tank</code> (no cachefile)</li>
+<li>default flags first; <code>-f</code>, <code>-F</code>, <code>-X</code>, <code>--rewind-to-checkpoint</code> are
+  covered where they change the path</li>
+</ul>
+<p>Line-number anchors in this chapter are based on the reference revision
+listed in <code>README.md</code> (<code>0f9564e85</code>). If you are on a newer OpenZFS commit,
+expect some drift and use symbol names to relocate.</p>
+<hr />
+<h2 id="diagram-1-two-phase-import-sequence">Diagram 1 - Two-Phase Import Sequence<a class="headerlink" href="#diagram-1-two-phase-import-sequence" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as zpool import (CLI)
+    participant ZU as libzutil scan
+    participant LZ as libzfs
+    participant IO as zfs_ioctl.c
+    participant SPA as spa.c load machine
+    participant VD as vdev labels
+
+    U-&gt;&gt;ZU: zpool_search_import()
+    ZU-&gt;&gt;VD: read vdev_phys nvlists (userland, O_DIRECT)
+    ZU-&gt;&gt;LZ: refresh_config()
+    LZ-&gt;&gt;IO: ZFS_IOC_POOL_TRYIMPORT
+    IO-&gt;&gt;SPA: spa_tryimport() (read-only dry run)
+    SPA--&gt;&gt;U: candidate config + LOAD_INFO
+
+    U-&gt;&gt;LZ: zpool_import_props(config)
+    LZ-&gt;&gt;IO: ZFS_IOC_POOL_IMPORT
+    IO-&gt;&gt;SPA: spa_import() -&gt; spa_load_best() -&gt; spa_load_impl()
+    SPA-&gt;&gt;VD: select uberblock, open MOS, claim ZIL
+    SPA--&gt;&gt;U: 0 or errno (+ LOAD_INFO nvlist)</code></pre>
+<hr />
+<h2 id="step-1-cli-entry-zpool_do_import">Step 1 - CLI Entry: <code>zpool_do_import()</code><a class="headerlink" href="#step-1-cli-entry-zpool_do_import" title="Permanent link">&para;</a></h2>
+<p>Primary file:</p>
+<ul>
+<li><code>cmd/zpool/zpool_main.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>zpool_do_import()</code> (<code>cmd/zpool/zpool_main.c:4337</code>)</li>
+<li><code>import_pools()</code> (<code>cmd/zpool/zpool_main.c:3941</code>)</li>
+<li><code>do_import()</code> (<code>cmd/zpool/zpool_main.c:3803</code>)</li>
+</ul>
+<p><code>zpool_do_import()</code> parses flags into two separate containers:</p>
+<ol>
+<li>import flags (<code>ZFS_IMPORT_*</code> bits, <code>include/sys/fs/zfs.h:1851</code>) passed
+   as the ioctl cookie: <code>-f</code> -&gt; <code>ZFS_IMPORT_ANY_HOST</code>, <code>-m</code> -&gt;
+   <code>ZFS_IMPORT_MISSING_LOG</code>, <code>-N</code> -&gt; <code>ZFS_IMPORT_ONLY</code>, <code>-V</code> -&gt;
+   <code>ZFS_IMPORT_VERBATIM</code>, <code>--rewind-to-checkpoint</code> -&gt;
+   <code>ZFS_IMPORT_CHECKPOINT</code></li>
+<li>a load policy nvlist (<code>ZPOOL_LOAD_POLICY</code>) built from
+   <code>-F</code>/<code>-n</code>/<code>-X</code>/<code>-T</code>: <code>ZPOOL_LOAD_REQUEST_TXG</code> plus
+   <code>ZPOOL_LOAD_REWIND_POLICY</code> (<code>ZPOOL_NO_REWIND</code>/<code>ZPOOL_TRY_REWIND</code>/
+   <code>ZPOOL_DO_REWIND</code>/<code>ZPOOL_EXTREME_REWIND</code>, <code>include/sys/fs/zfs.h:710</code>)</li>
+</ol>
+<p><code>import_pools()</code> attaches the policy nvlist to every candidate config, so
+the rewind policy rides inside the config all the way into the kernel.</p>
+<hr />
+<h2 id="step-2-userland-label-scanning-libzutil">Step 2 - Userland Label Scanning (libzutil)<a class="headerlink" href="#step-2-userland-label-scanning-libzutil" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>lib/libzutil/zutil_import.c</code></li>
+<li><code>lib/libzutil/os/linux/zutil_import_os.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>zpool_search_import()</code> (<code>lib/libzutil/zutil_import.c:1851</code>)</li>
+<li><code>zpool_find_import()</code> (<code>lib/libzutil/zutil_import.c:1810</code>)</li>
+<li><code>zpool_find_import_impl()</code> (<code>lib/libzutil/zutil_import.c:1448</code>)</li>
+<li><code>zpool_read_label()</code> (<code>lib/libzutil/zutil_import.c:1008</code>)</li>
+<li><code>get_configs()</code> (<code>lib/libzutil/zutil_import.c:490</code>)</li>
+<li><code>zpool_open_func()</code> (<code>lib/libzutil/os/linux/zutil_import_os.c:102</code>)</li>
+<li><code>zpool_find_import_blkid()</code> (<code>lib/libzutil/os/linux/zutil_import_os.c:295</code>)</li>
+</ul>
+<p>The important fact: label reading happens in userland first. The kernel is
+not involved in discovering which devices belong to which pool.</p>
+<p>Flow:</p>
+<ol>
+<li><code>zpool_search_import()</code> picks cachefile vs scan
+   (<code>zpool_find_import_cached()</code> at <code>zutil_import.c:1634</code> vs
+   <code>zpool_find_import()</code>), and enumeration uses libblkid by default
+   (<code>zpool_find_import_blkid()</code>) or directory scanning with <code>-d</code>/<code>-s</code>
+   (<code>zpool_find_import_scan()</code> at <code>zutil_import.c:1383</code>).</li>
+<li><code>zpool_find_import_impl()</code> spins up a taskq named <code>zpool_find_import</code>
+   and dispatches <code>zpool_open_func()</code> per candidate device.</li>
+<li><code>zpool_open_func()</code> opens the device (<code>O_RDONLY | O_DIRECT</code> to bypass
+   stale block caches) and calls <code>zpool_read_label()</code>, which reads the
+   <code>vdev_phys_t</code> nvlist from all four label slots. A label must carry a
+   vdev guid, a pool state, and (for non-aux devices) a nonzero
+   <code>ZPOOL_CONFIG_POOL_TXG</code> to count.</li>
+<li><code>get_configs()</code> assembles one candidate config per pool: for each
+   top-level vdev it picks the label config with the highest txg, then
+   stitches the top-levels into a full vdev tree and fixes up paths.</li>
+<li>For each assembled pool, <code>get_configs()</code> calls <code>zutil_pool_active()</code>
+   (skip already-imported pools) and <code>zutil_refresh_config()</code>
+   (<code>zutil_import.c:838</code>).</li>
+</ol>
+<p>That last call is where the kernel first sees the config:
+<code>zutil_refresh_config()</code> dispatches through <code>pco_refresh_config</code> to
+<code>refresh_config()</code> (<code>lib/libzfs/libzfs_import.c:71</code>), which issues
+<code>ZFS_IOC_POOL_TRYIMPORT</code>. In the kernel, <code>zfs_ioc_pool_tryimport()</code>
+(<code>module/zfs/zfs_ioctl.c:1661</code>) calls <code>spa_tryimport()</code>
+(<code>module/zfs/spa.c:7514</code>), which performs a full read-only load of the pool
+under a temporary spa named <code>$import-&lt;thread&gt;-&lt;pool&gt;</code> (<code>TRYIMPORT_NAME</code>,
+<code>spa.c:237</code>) and returns a refreshed config plus a <code>ZPOOL_CONFIG_LOAD_INFO</code>
+nvlist (MMP state, unsupported features, missing devices, rewind info).</p>
+<p>So a normal <code>zpool import tank</code> actually runs the kernel load machine
+twice: once as a <code>SPA_LOAD_TRYIMPORT</code> dry run, once for real.</p>
+<hr />
+<h2 id="step-3-the-ioctl-handoff">Step 3 - The Ioctl Handoff<a class="headerlink" href="#step-3-the-ioctl-handoff" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>cmd/zpool/zpool_main.c</code></li>
+<li><code>lib/libzfs/libzfs_pool.c</code></li>
+<li><code>module/zfs/zfs_ioctl.c</code></li>
+</ul>
+<p>Before issuing the real import, <code>do_import()</code> checks
+<code>zfs_force_import_required()</code> (<code>zpool_main.c:3763</code>): if the pool was not
+cleanly exported and the hostid in <code>LOAD_INFO</code> differs from
+<code>get_system_hostid()</code>, or the tryimport recorded a non-inactive MMP state,
+the CLI refuses without <code>-f</code> (<code>ZFS_IMPORT_ANY_HOST</code>). This is a userland
+policy gate - the "use 'zpool import -f'" message never comes from the
+kernel.</p>
+<p>Then <code>zpool_import_props()</code> (<code>lib/libzfs/libzfs_pool.c:2154</code>) packs the
+config nvlist and issues <code>zfs_ioctl(hdl, ZFS_IOC_POOL_IMPORT, &amp;zc)</code> with
+the <code>ZFS_IMPORT_*</code> flags in <code>zc_cookie</code>. In the kernel,
+<code>zfs_ioc_pool_import()</code> (<code>module/zfs/zfs_ioctl.c:1554</code>) unpacks the
+config, cross-checks the pool guid against <code>zc_guid</code>, and calls
+<code>spa_import(zc-&gt;zc_name, config, props, zc-&gt;zc_cookie)</code>. On failure it
+still copies the config (now containing <code>ZPOOL_CONFIG_LOAD_INFO</code>) back
+out, which is how userland gets enough detail to print a useful
+diagnosis.</p>
+<hr />
+<h2 id="step-4-spa_import-and-the-rewind-driver">Step 4 - <code>spa_import()</code> and the Rewind Driver<a class="headerlink" href="#step-4-spa_import-and-the-rewind-driver" title="Permanent link">&para;</a></h2>
+<p>Primary file:</p>
+<ul>
+<li><code>module/zfs/spa.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>spa_import()</code> (<code>module/zfs/spa.c:7332</code>)</li>
+<li><code>spa_load_best()</code> (<code>module/zfs/spa.c:6299</code>)</li>
+<li><code>spa_load_retry()</code> (<code>module/zfs/spa.c:6273</code>)</li>
+<li><code>spa_load()</code> (<code>module/zfs/spa.c:3655</code>)</li>
+</ul>
+<p><code>spa_import()</code> rejects a name collision with <code>EEXIST</code>, handles
+<code>ZFS_IMPORT_VERBATIM</code> (<code>-V</code>: insert into the namespace and write the
+cachefile, no load at all), reads the policy with
+<code>zpool_get_load_policy()</code> (<code>module/zcommon/zfs_comutil.c:98</code>) -
+<code>ZPOOL_DO_REWIND</code> switches <code>SPA_LOAD_IMPORT</code> to <code>SPA_LOAD_RECOVER</code> - and
+calls <code>spa_load_best(spa, state, policy.zlp_txg, policy.zlp_rewind)</code>.</p>
+<p><code>spa_load_best()</code> implements <code>-F</code>/<code>-X</code> txg rewind:</p>
+<ul>
+<li>First attempt: <code>spa_load(spa, state, SPA_IMPORT_EXISTING)</code>.</li>
+<li>Errors that never trigger rewind (<code>spa.c:6322</code>):
+  <code>ZFS_ERR_NO_CHECKPOINT</code>, <code>EREMOTEIO</code> (MMP says active elsewhere),
+  <code>EBADF</code> (config cache out of sync), <code>EINTR</code>.</li>
+<li>Otherwise, if rewind is allowed, <code>spa_load_retry()</code> sets
+  <code>spa_load_max_txg = ub_txg - 1</code> and reloads, looping backwards. The
+  safe rewind floor is <code>spa_last_ubsync_txg - TXG_DEFER_SIZE</code>; with
+  <code>ZPOOL_EXTREME_REWIND</code> (<code>-X</code>) it drops to <code>TXG_INITIAL</code> (<code>spa.c:6364</code>).</li>
+</ul>
+<p><code>spa_load()</code> is a thin wrapper that sets <code>spa_load_state</code>, records
+progress, and calls <code>spa_load_impl()</code>.</p>
+<hr />
+<h2 id="step-5-the-kernel-load-state-machine-spa_load_impl">Step 5 - The Kernel Load State Machine: <code>spa_load_impl()</code><a class="headerlink" href="#step-5-the-kernel-load-state-machine-spa_load_impl" title="Permanent link">&para;</a></h2>
+<p>Key anchor:</p>
+<ul>
+<li><code>spa_load_impl()</code> (<code>module/zfs/spa.c:5968</code>)</li>
+</ul>
+<p>The stage order below is the order the code executes at the pinned
+revision. Every stage logs through <code>spa_load_failed()</code> on error, so the
+dbgmsg log tells you exactly which stage stopped the import.</p>
+<h3 id="diagram-2-stage-order-mermaid">Diagram 2 - Stage Order (Mermaid)<a class="headerlink" href="#diagram-2-stage-order-mermaid" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TD
+    A["spa_ld_mos_init()&lt;br/&gt;parse config, open+validate vdevs,&lt;br/&gt;select uberblock, open rootbp"] --&gt; B["spa_ld_trusted_config()"]
+    B --&gt;|EAGAIN| R["spa_ld_prepare_for_reload()&lt;br/&gt;RELOADING with MOS config"]
+    R --&gt; A
+    B --&gt; C{"ZFS_IMPORT_CHECKPOINT?"}
+    C --&gt;|yes| K["spa_ld_checkpoint_rewind()&lt;br/&gt;then full reload"]
+    C --&gt;|no| D["spa_ld_read_checkpoint_txg()"]
+    K --&gt; D
+    D --&gt; E["spa_ld_open_indirect_vdev_metadata()"]
+    E --&gt; F["spa_ld_check_features()"]
+    F --&gt; G["spa_ld_load_special_directories()"]
+    G --&gt; H["spa_ld_get_props()"]
+    H --&gt; I["spa_ld_open_aux_vdevs()"]
+    I --&gt; J["spa_ld_load_vdev_metadata()"]
+    J --&gt; L["spa_ld_load_dedup_tables() / spa_ld_load_brt()"]
+    L --&gt; M["spa_ld_verify_logs()"]
+    M --&gt; N["spa_ld_verify_pool_data()"]
+    N --&gt; O["writeable only:&lt;br/&gt;spa_ld_claim_log_blocks()&lt;br/&gt;txg_sync_start() + config update"]
+
+    style A fill:#d7ecff,stroke:#333
+    style B fill:#fff4c2,stroke:#333
+    style F fill:#ffe8cc,stroke:#333
+    style O fill:#d9f7d6,stroke:#333</code></pre>
+<h3 id="stage-5a-spa_ld_mos_init-spac5750">Stage 5a - <code>spa_ld_mos_init()</code> (<code>spa.c:5750</code>)<a class="headerlink" href="#stage-5a-spa_ld_mos_init-spac5750" title="Permanent link">&para;</a></h3>
+<p>Runs with the untrusted userland config (<code>spa_trust_config = B_FALSE</code>):</p>
+<ol>
+<li><code>spa_ld_parse_config()</code> (<code>spa.c:4500</code>): validate pool guid, reject
+   already-imported guids with <code>EEXIST</code>, parse the nvlist into a vdev
+   tree via <code>spa_config_parse()</code>.</li>
+<li><code>spa_ld_open_vdevs()</code> (<code>spa.c:4618</code>): <code>vdev_open()</code> the whole tree;
+   tolerated missing top-level vdevs depend on the config source
+   (<code>zfs_max_missing_tvds*</code> tunables).</li>
+<li><code>spa_ld_validate_vdevs()</code> (<code>spa.c:4682</code>): <code>vdev_validate()</code> checks
+   label guids against the config; <code>ENXIO</code> if the tree cannot open after.</li>
+<li><code>spa_ld_select_uberblock()</code> (<code>spa.c:4720</code>): pick the best uberblock
+   (detail below), run the MMP activity check, verify pool version and
+   the label's <code>features_for_read</code>.</li>
+<li><code>spa_ld_open_rootbp()</code> (<code>spa.c:4887</code>): <code>dsl_pool_init()</code> opens the MOS
+   root blkptr from the selected uberblock.</li>
+</ol>
+<h3 id="stage-5b-untrusted-vs-trusted-config">Stage 5b - Untrusted vs Trusted Config<a class="headerlink" href="#stage-5b-untrusted-vs-trusted-config" title="Permanent link">&para;</a></h3>
+<p>Key anchors:</p>
+<ul>
+<li><code>spa_ld_trusted_config()</code> (<code>spa.c:4904</code>)</li>
+<li><code>spa_ld_mos_with_trusted_config()</code> (<code>spa.c:5917</code>)</li>
+<li><code>spa_ld_prepare_for_reload()</code> (<code>spa.c:5703</code>)</li>
+<li><code>spa_load_note()</code> / <code>spa_load_failed()</code> (<code>module/zfs/spa_misc.c:422</code>,
+  <code>spa_misc.c:408</code>)</li>
+</ul>
+<p>The label-derived config got us far enough to read the MOS - nothing
+more. <code>spa_ld_trusted_config()</code> loads the authoritative config object
+from the MOS (<code>DMU_POOL_CONFIG</code>), builds a new vdev tree from it, copies
+device paths from the scanned tree (<code>vdev_copy_path_strict()</code>, falling
+back to <code>vdev_copy_path_relaxed()</code>), swaps it in as <code>spa_root_vdev</code>, sets
+<code>spa_trust_config = B_TRUE</code>, and re-opens and re-validates all vdevs.</p>
+<p>If the provided config misses too many top-level vdevs compared to the
+MOS config (<code>SPA_SYNC_MIN_VDEVS</code> or more), it returns <code>EAGAIN</code> and
+<code>spa_ld_mos_with_trusted_config()</code> restarts the whole mos-init sequence
+with the trusted config (<code>spa_load_note(spa, "RELOADING")</code>).</p>
+<p>This is why dbgmsg shows the trust state in every line: the format in
+<code>spa_load_note()</code>/<code>spa_load_failed()</code> is <code>"spa_load(%s, config %s): ..."</code>
+where <code>%s</code> is <code>trusted</code> or <code>untrusted</code> per <code>spa_trust_config</code>.</p>
+<h3 id="stage-5c-checkpoint-rewind-branch">Stage 5c - Checkpoint Rewind Branch<a class="headerlink" href="#stage-5c-checkpoint-rewind-branch" title="Permanent link">&para;</a></h3>
+<p>Key anchor: <code>spa_ld_checkpoint_rewind()</code> (<code>spa.c:5825</code>)</p>
+<p>With <code>--rewind-to-checkpoint</code> (<code>ZFS_IMPORT_CHECKPOINT</code>), after the first
+trusted-config load succeeds, <code>spa_load_impl()</code> extracts the checkpointed
+uberblock from the MOS ZAP entry <code>DMU_POOL_ZPOOL_CHECKPOINT</code>, bumps its
+txg/timestamp above the current uberblock so label search will select it,
+writes it to the vdev labels via <code>vdev_config_sync()</code> when writeable
+(making the rewind permanent), and repeats the whole load. <code>ENOENT</code>
+becomes <code>ZFS_ERR_NO_CHECKPOINT</code>.</p>
+<p>Contrast with <code>-F</code>/<code>-X</code>: txg rewind retries <code>spa_load()</code> with
+progressively older uberblocks still present in the label uberblock rings
+(driven from <code>spa_load_best()</code>, outside <code>spa_load_impl()</code>), while
+checkpoint rewind jumps to one specific uberblock preserved in the MOS,
+inside a single <code>spa_load()</code> attempt.</p>
+<h3 id="stage-5d-mos-wide-stages">Stage 5d - MOS-Wide Stages<a class="headerlink" href="#stage-5d-mos-wide-stages" title="Permanent link">&para;</a></h3>
+<p>After the trusted config is in place, <code>spa_load_impl()</code> drops the
+namespace lock and runs (each with the <code>spa_import_progress_set_notes()</code>
+string it publishes):</p>
+<ol>
+<li><code>spa_ld_read_checkpoint_txg()</code> (<code>spa.c:5721</code>) - "Loading checkpoint txg"</li>
+<li><code>spa_ld_open_indirect_vdev_metadata()</code> (<code>spa.c:5112</code>) - device-removal
+   mappings; must run before anything that might read through indirect
+   vdevs (<code>spa_remove_init()</code> + <code>spa_condense_init()</code>)</li>
+<li><code>spa_ld_check_features()</code> (<code>spa.c:5142</code>) - "Checking feature flags"
+   (detail below)</li>
+<li><code>spa_ld_load_special_directories()</code> (<code>spa.c:5267</code>) - <code>dsl_pool_open()</code></li>
+<li><code>spa_ld_get_props()</code> (<code>spa.c:5284</code>) - checksum salt, deferred-frees
+   bpobj, pool properties, errata detection</li>
+<li><code>spa_ld_open_aux_vdevs()</code> (<code>spa.c:5447</code>) - spares and l2cache from the
+   MOS config</li>
+<li><code>spa_ld_load_vdev_metadata()</code> (<code>spa.c:5506</code>) - hostid-zero multihost
+   gate, <code>vdev_load()</code> (metaslabs, DTLs), <code>spa_ld_log_spacemaps()</code></li>
+<li><code>spa_ld_load_dedup_tables()</code> (<code>spa.c:5570</code>) - <code>ddt_load()</code></li>
+<li><code>spa_ld_load_brt()</code> (<code>spa.c:5585</code>) - block-cloning reference table</li>
+<li><code>spa_ld_verify_logs()</code> (<code>spa.c:5600</code>) - <code>spa_check_logs()</code> walks the
+    ZIL chains before claiming; an unreadable log chain fails with
+    <code>ENXIO</code>/<code>VDEV_AUX_BAD_LOG</code> (missing log <em>devices</em> were already handled
+    earlier by <code>spa_check_for_missing_logs()</code>, <code>spa.c:2772</code>, called from
+    <code>spa_ld_trusted_config()</code> at <code>spa.c:5095</code>; <code>-m</code> /
+    <code>ZFS_IMPORT_MISSING_LOG</code> switches that check to dropping the ZIL)</li>
+<li><code>missing_feat_write</code> check - a tryimport that is only read-only
+    importable stops here with <code>ENOTSUP</code></li>
+<li><code>spa_ld_verify_pool_data()</code> (<code>spa.c:5623</code>) - <code>spa_load_verify()</code>
+    (<code>spa.c:3049</code>) traverses recent txgs; with extreme rewind it scans the
+    whole pool ("This may take a very long time")</li>
+</ol>
+<h3 id="stage-5e-writeable-only-tail">Stage 5e - Writeable-Only Tail<a class="headerlink" href="#stage-5e-writeable-only-tail" title="Permanent link">&para;</a></h3>
+<p>Only when <code>spa_writeable()</code> and this is the final (non-tryimport) load:</p>
+<ul>
+<li>finish raidz expansion scratch copy if needed</li>
+<li><code>spa_ld_claim_log_blocks()</code> (<code>spa.c:5646</code>) - ZIL claim (detail below)</li>
+<li><code>txg_sync_start()</code> + <code>mmp_thread_start()</code> - the pool is now live</li>
+<li><code>txg_wait_synced(dp, spa_claim_max_txg)</code> - wait for claims to sync</li>
+<li><code>spa_ld_check_for_config_update()</code> (<code>spa.c:5671</code>) - an import always
+  schedules <code>SPA_ASYNC_CONFIG_UPDATE</code> to rewrite labels and the cachefile</li>
+<li>restart rebuilds/resilvers, device removals, initialize/TRIM, delete
+  inconsistent datasets</li>
+</ul>
+<p>Then <code>spa_load_note(spa, "LOADED")</code>.</p>
+<hr />
+<h2 id="key-stage-details">Key Stage Details<a class="headerlink" href="#key-stage-details" title="Permanent link">&para;</a></h2>
+<h3 id="uberblock-selection">Uberblock Selection<a class="headerlink" href="#uberblock-selection" title="Permanent link">&para;</a></h3>
+<p>Key anchors:</p>
+<ul>
+<li><code>vdev_uberblock_load()</code> (<code>module/zfs/vdev_label.c:1596</code>)</li>
+<li><code>vdev_uberblock_load_done()</code> (<code>vdev_label.c:1536</code>)</li>
+<li><code>vdev_uberblock_compare()</code> (<code>vdev_label.c:1495</code>)</li>
+</ul>
+<p>Every uberblock slot of every label of every readable leaf vdev is read.
+<code>vdev_uberblock_compare()</code> orders candidates by:</p>
+<ol>
+<li><code>ub_txg</code> (higher wins)</li>
+<li><code>ub_timestamp</code> (tie-break for the split-brain-after-power-loss case
+   described in the block comment above the function)</li>
+<li>MMP sequence number (<code>MMP_SEQ</code>, treated as 0 for pre-MMP writers)</li>
+</ol>
+<p>Rewind hooks in right here: <code>vdev_uberblock_load_done()</code> ignores any
+uberblock with <code>ub_txg &gt; spa_load_max_txg</code> (<code>vdev_label.c:1551</code>), so
+"rewind" is literally "select an older uberblock". The config nvlist is
+then re-read from the same vdev that carried the winning uberblock.</p>
+<h3 id="mmp-activity-check">MMP Activity Check<a class="headerlink" href="#mmp-activity-check" title="Permanent link">&para;</a></h3>
+<p>Key anchors:</p>
+<ul>
+<li><code>spa_activity_check_required()</code> (<code>spa.c:3821</code>)</li>
+<li><code>spa_ld_activity_check()</code> (<code>spa.c:4344</code>)</li>
+<li><code>spa_activity_check_tryimport()</code> (<code>spa.c:4087</code>)</li>
+<li><code>spa_activity_check_claim()</code> (<code>spa.c:4191</code>, called from
+  <code>spa_ld_trusted_config()</code> at <code>spa.c:5086</code>)</li>
+</ul>
+<p>For <code>multihost=on</code> pools, <code>spa_ld_select_uberblock()</code> checks whether the
+pool might be alive on another host. The check is skipped for
+<code>ZFS_IMPORT_SKIP_MMP</code> (zdb), for pools without MMP state in the
+uberblock, and for clean exports by the same hostid. During tryimport,
+the kernel re-reads the best uberblock in a loop and fails with
+<code>EREMOTEIO</code> if it changes. The real import first verifies the
+tryimport's recorded MMP state (<code>spa_activity_verify_config()</code>,
+<code>spa.c:3741</code>), then - after the trusted config is loaded - writes claim
+uberblocks with a random MMP sequence and verifies they survive
+(<code>spa_activity_check_claim()</code>). A host with hostid 0 gets <code>ENXIO</code>
+internally, surfaced as <code>EREMOTEIO</code> (<code>spa_ld_activity_result()</code>,
+<code>spa.c:4050</code>). <code>EREMOTEIO</code> is one of the errors <code>spa_load_best()</code>
+refuses to rewind past.</p>
+<h3 id="feature-gate">Feature Gate<a class="headerlink" href="#feature-gate" title="Permanent link">&para;</a></h3>
+<p>Key anchor: <code>spa_ld_check_features()</code> (<code>spa.c:5142</code>)</p>
+<p>Feature checking happens twice. First, at uberblock selection, the
+label's <code>ZPOOL_CONFIG_FEATURES_FOR_READ</code> list is screened with
+<code>zfeature_is_supported()</code> (<code>spa.c:4844</code>) - without that we could not even
+parse the MOS. Second, <code>spa_ld_check_features()</code> reads the full
+<code>DMU_POOL_FEATURES_FOR_READ</code>/<code>FEATURES_FOR_WRITE</code> objects from the MOS
+and runs <code>spa_features_check()</code> for read and (if writeable or tryimport)
+for write. Read-incompatible features fail immediately;
+write-only-missing features set <code>missing_feat_write</code> and the load
+continues far enough to prove the pool is importable read-only
+(<code>ZPOOL_CONFIG_CAN_RDONLY</code> in <code>LOAD_INFO</code>) - the mechanism behind "All
+unsupported features are only required for writing ... can be imported
+using '-o readonly=on'". The read/write split is
+<code>ZFEATURE_FLAG_READONLY_COMPAT</code> on the feature definition.</p>
+<p>This stage also sets errata: encryption enabled without <code>bookmark_v2</code>
+flags <code>spa-&gt;spa_errata = ZPOOL_ERRATA_ZOL_8308_ENCRYPTION</code>
+(<code>spa.c:5260</code>); the <code>ZPOOL_ERRATA_*</code> enum is <code>include/sys/fs/zfs.h:1261</code>.</p>
+<h3 id="zil-claim-why-import-commits-a-txg">ZIL Claim - Why Import Commits a txg<a class="headerlink" href="#zil-claim-why-import-commits-a-txg" title="Permanent link">&para;</a></h3>
+<p>Key anchors:</p>
+<ul>
+<li><code>spa_ld_claim_log_blocks()</code> (<code>spa.c:5646</code>)</li>
+<li><code>zil_claim()</code> (<code>module/zfs/zil.c:1142</code>)</li>
+<li><code>zil_claim_log_block()</code> (<code>zil.c:617</code>)</li>
+</ul>
+<p>Unreplayed ZIL blocks are allocated but not yet referenced by the block
+tree; a txg sync that did not know about them would consider that space
+free. So a writeable import creates a transaction pinned to
+<code>spa_first_txg</code> (<code>dmu_tx_create_assigned()</code>) and walks every dataset with
+<code>dmu_objset_find_dp(..., zil_claim, ...)</code>. <code>zil_claim()</code> stamps
+<code>zh_claim_txg</code> in each ZIL header and claims each log block via
+<code>zio_claim()</code>; completion callbacks bump <code>spa_claim_max_txg</code> through
+<code>spa_claim_notify()</code>. Right after, <code>spa_load_impl()</code> starts the sync
+thread and blocks in <code>txg_wait_synced(dp, spa_claim_max_txg)</code> - this is
+why even a "read-mostly" import commits at least one txg, and why
+rewinding a pool abandons its logs (<code>spa_set_log_state(spa,
+SPA_LOG_CLEAR)</code> in <code>spa_load_best()</code>).</p>
+<hr />
+<h2 id="observability-for-debugging">Observability for Debugging<a class="headerlink" href="#observability-for-debugging" title="Permanent link">&para;</a></h2>
+<h3 id="zfs_dbgmsg">zfs_dbgmsg<a class="headerlink" href="#zfs_dbgmsg" title="Permanent link">&para;</a></h3>
+<p>Every stage narrates into the debug log (<code>/proc/spl/kstat/zfs/dbgmsg</code>;
+<code>zfs_dbgmsg_enable</code> defaults to on) via <code>spa_load_note()</code> and
+<code>spa_load_failed()</code>. A healthy import has this shape (values are
+examples; formats are the real ones):</p>
+<div class="highlight"><pre><span></span><code>spa_load(tank, config untrusted): LOADING
+spa_load(tank, config untrusted): using uberblock with txg=123456
+spa_load(tank, config trusted): LOADED
+</code></pre></div>
+<p>A failing import replaces the tail with a <code>FAILED:</code> line naming the stage:</p>
+<div class="highlight"><pre><span></span><code>spa_load(tank, config untrusted): FAILED: no valid uberblock found
+spa_load(tank, config trusted): FAILED: spa_check_logs failed
+spa_load(tank, config untrusted): FAILED: mmp: pool is active on remote host, state=0
+</code></pre></div>
+<p>The <code>config untrusted</code>/<code>trusted</code> marker tells you which side of the
+<code>spa_ld_trusted_config()</code> round trip you died on.</p>
+<h3 id="import-progress-kstat">Import Progress kstat<a class="headerlink" href="#import-progress-kstat" title="Permanent link">&para;</a></h3>
+<p><code>spa_import_progress_set_notes()</code> publishes each stage's note string to a
+procfs list installed as <code>import_progress</code> under the zfs kstat directory
+(<code>procfs_list_install("zfs", NULL, "import_progress", ...)</code>,
+<code>module/zfs/spa_misc.c:2405</code>), i.e.
+<code>/proc/spl/kstat/zfs/import_progress</code> on Linux. For a hung import, <code>cat</code>
+it: the <code>notes</code> column shows the exact stage ("Verifying Log Devices",
+"Claiming ZIL blocks", "Checking MMP activity, waiting ... ms").</p>
+<h3 id="userland-error-strings">Userland Error Strings<a class="headerlink" href="#userland-error-strings" title="Permanent link">&para;</a></h3>
+<p>The strings <code>zpool import</code> prints come from the <code>switch (error)</code> in
+<code>zpool_import_props()</code> (<code>lib/libzfs/libzfs_pool.c</code>), keyed on the errno
+from the ioctl plus the <code>ZPOOL_CONFIG_LOAD_INFO</code> nvlist: <code>ENOTSUP</code> prints
+the unsupported feature list, <code>EREMOTEIO</code> prints the MMP hostname/hostid,
+<code>ENXIO</code> prints <code>ZPOOL_CONFIG_MISSING_DEVICES</code>; everything else falls
+through to <code>zpool_standard_error()</code>, and the default case appends the
+rewind suggestion via <code>zpool_explain_recover()</code>. Set
+<code>ZFS_LOAD_INFO_DEBUG=1</code> to dump the raw <code>LOAD_INFO</code> nvlist.</p>
+<hr />
+<h2 id="where-imports-fail-in-practice">Where Imports Fail in Practice<a class="headerlink" href="#where-imports-fail-in-practice" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Stage</th>
+<th>Code location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"no such pool available"</td>
+<td>userland scan found no labels</td>
+<td><code>zpool_find_import_impl()</code> / <code>zpool_read_label()</code></td>
+</tr>
+<tr>
+<td>"pool is imported on host ..." / "pool is busy"</td>
+<td>MMP activity check, <code>EREMOTEIO</code></td>
+<td><code>spa_ld_activity_check()</code> (<code>spa.c:4344</code>), claim recheck at <code>spa.c:5086</code></td>
+</tr>
+<tr>
+<td>"pool uses the following feature(s) not supported"</td>
+<td>feature gate, <code>ENOTSUP</code></td>
+<td><code>spa_ld_check_features()</code> (<code>spa.c:5142</code>); label-level check at <code>spa.c:4844</code></td>
+</tr>
+<tr>
+<td>"no valid uberblock found" in dbgmsg, <code>ENXIO</code></td>
+<td>uberblock selection</td>
+<td><code>spa_ld_select_uberblock()</code> (<code>spa.c:4759</code>)</td>
+</tr>
+<tr>
+<td>"one or more devices is currently unavailable", missing-device list</td>
+<td>vdev open/validate</td>
+<td><code>spa_ld_open_vdevs()</code> (<code>spa.c:4618</code>), <code>spa_ld_validate_vdevs()</code> (<code>spa.c:4682</code>)</td>
+</tr>
+<tr>
+<td>"The devices below are missing or corrupted ... use '-m'" (log device)</td>
+<td>trusted-config validation</td>
+<td><code>spa_check_for_missing_logs()</code> (<code>spa.c:2772</code>), sets <code>ZPOOL_CONFIG_MISSING_DEVICES</code></td>
+</tr>
+<tr>
+<td>import hangs with slow progress</td>
+<td>data verification or extreme rewind scan</td>
+<td><code>spa_ld_verify_pool_data()</code> -&gt; <code>spa_load_verify()</code> (<code>spa.c:3049</code>); watch <code>import_progress</code></td>
+</tr>
+<tr>
+<td>"one or more devices are already in use"</td>
+<td>userland exclusive-open pruning or kernel <code>EBUSY</code></td>
+<td><code>zpool_find_import_impl()</code> <code>O_EXCL</code> check (<code>zutil_import.c:1541</code>)</td>
+</tr>
+<tr>
+<td>"a pool with that name already exists"</td>
+<td>guid/name collision</td>
+<td>CLI check, then <code>spa_ld_parse_config()</code> <code>EEXIST</code> (<code>spa.c:4543</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="freebsd-parity-brief">FreeBSD Parity (Brief)<a class="headerlink" href="#freebsd-parity-brief" title="Permanent link">&para;</a></h2>
+<p>The kernel load machine (<code>module/zfs/spa.c</code>) is shared code. Only the
+userland device-enumeration layer is platform-split:
+<code>lib/libzutil/os/freebsd/zutil_import_os.c</code> provides its own
+<code>zpool_open_func()</code> and <code>zpool_find_import_blkid()</code> (no libblkid on
+FreeBSD), and everything above <code>zpool_find_import_impl()</code> is common.</p>
+<hr />
+<h2 id="end-to-end-flow-recap">End-to-End Flow Recap<a class="headerlink" href="#end-to-end-flow-recap" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>zpool import tank
+  -&gt; zpool_do_import()                      (cmd/zpool/zpool_main.c:4337)
+    -&gt; zpool_search_import()                (lib/libzutil/zutil_import.c:1851)
+      -&gt; zpool_find_import_impl()           (label scan, userland)
+        -&gt; zpool_open_func() / zpool_read_label()
+      -&gt; get_configs() -&gt; refresh_config()  (ZFS_IOC_POOL_TRYIMPORT dry run)
+    -&gt; import_pools() -&gt; do_import()        (force/MMP policy gate)
+      -&gt; zpool_import_props()               (lib/libzfs/libzfs_pool.c:2154)
+        -&gt; ZFS_IOC_POOL_IMPORT
+          -&gt; zfs_ioc_pool_import()          (module/zfs/zfs_ioctl.c:1554)
+            -&gt; spa_import()                 (module/zfs/spa.c:7332)
+              -&gt; spa_load_best()            (rewind driver, spa.c:6299)
+                -&gt; spa_load() -&gt; spa_load_impl()
+                  -&gt; spa_ld_mos_init()      (untrusted config, uberblock, rootbp)
+                  -&gt; spa_ld_trusted_config() (MOS config, maybe RELOADING)
+                  -&gt; spa_ld_* MOS stages    (features, props, vdev metadata, logs)
+                  -&gt; spa_ld_claim_log_blocks() + txg_sync_start()
+                    -&gt; txg_wait_synced()    (import commits a txg)
+</code></pre></div>
+<hr />
+<h2 id="key-takeaways">Key Takeaways<a class="headerlink" href="#key-takeaways" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Discovery is userland: labels are read from raw devices by libzutil
+   before the kernel ever sees a config.</li>
+<li>A normal import runs the kernel loader twice: tryimport (read-only dry
+   run) then the real load.</li>
+<li>The label config is untrusted by design; the MOS config is the truth,
+   and the loader will restart itself to honor it.</li>
+<li>Uberblock selection order is txg, then timestamp, then MMP sequence -
+   and rewind is just capping the acceptable txg.</li>
+<li>Feature and MMP failures are policy stops with structured <code>LOAD_INFO</code>;
+   userland turns them into the messages you actually see.</li>
+<li>A writeable import always commits a txg (ZIL claim + config update),
+   which is why rollback-style rewinds discard logs.</li>
+<li>When stuck, read <code>/proc/spl/kstat/zfs/dbgmsg</code> for the <code>spa_load(...)</code>
+   lines and <code>/proc/spl/kstat/zfs/import_progress</code> for the live stage.</li>
+</ol>
+<hr />
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>-&gt; <a href="../03-io-path/">Part 3 - The I/O Path</a>: what the pool does with txgs
+once it is imported - the sync machinery that import just started with
+<code>txg_sync_start()</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../06-contributing-guide/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Part 6: Contributing Guide">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Part 6: Contributing Guide
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../08-send-receive/" class="md-footer__link md-footer__link--next" aria-label="Next: Part 8: Send and Receive">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Part 8: Send and Receive
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

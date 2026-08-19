@@ -1,0 +1,2137 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/01-architecture-overview/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../02-repo-layout/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 1: Architecture Overview - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-1-architecture-overview" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 1: Architecture Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-big-picture-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Big Picture Stack
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Diagram 1 - Big Picture Stack">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-big-picture-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Big Picture Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interlude-two-entry-points-the-stack-diagram-does-not-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interlude - Two Entry Points the Stack Diagram Does Not Show
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interlude - Two Entry Points the Stack Diagram Does Not Show">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zvol-block-device-data-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZVOL - block-device data path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control-plane-devzfs-ioctls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control plane - /dev/zfs ioctls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-2-foreground-vs-sync-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Foreground vs Sync Timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Diagram 2 - Foreground vs Sync Timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-foreground-vs-sync-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Foreground vs Sync Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-1-zpl-entry-points-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 1 - ZPL Entry Points (Linux)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-2-vnode-logic-portable-core-linux-glue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 2 - Vnode Logic (Portable Core + Linux Glue)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interlude-zil-synchronous-write-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interlude - ZIL (Synchronous Write Semantics)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-3-dmu-object-and-transaction-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 3 - DMU (Object and Transaction Core)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-4-dsl-datasets-snapshots-space-accounting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 4 - DSL (Datasets, Snapshots, Space Accounting)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-5-dbuf-arc-dirty-state-and-read-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 5 - dbuf + ARC (Dirty State and Read Cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 5 - dbuf + ARC (Dirty State and Read Cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-a-arc-state-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram A - ARC State Mental Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-6-zio-io-pipeline-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 6 - ZIO (I/O Pipeline Engine)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 6 - ZIO (I/O Pipeline Engine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-b-write-pipeline-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram B - Write Pipeline (Simplified)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-write-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Write Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-7-vdev-topology-and-device-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 7 - VDEV (Topology and Device Dispatch)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-75-metaslab-allocator-where-writes-land" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 7.5 - Metaslab Allocator (Where Writes Land)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 7.5 - Metaslab Allocator (Where Writes Land)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-c-allocation-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram C - Allocation Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-cutting-spa-and-txg-orchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Cutting - SPA and txg Orchestration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-Cutting - SPA and txg Orchestration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-4-txg-state-machine-conceptual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 4 - txg State Machine (Conceptual)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-txg-sync-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - txg Sync Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-structures-you-should-recognize-early" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Structures You Should Recognize Early
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Structures You Should Recognize Early">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-5-from-file-to-physical-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 5 - From File to Physical Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kernel-and-userland-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel and Userland Boundary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kernel and Userland Boundary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-6-build-time-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 6 - Build-Time Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="End-to-End Flow Recap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write control flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read control flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-reading-order-for-new-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Reading Order for New Contributors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-repo-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-contributing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-pool-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-send-receive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-debugging-toolbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-big-picture-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Big Picture Stack
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Diagram 1 - Big Picture Stack">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-big-picture-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Big Picture Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interlude-two-entry-points-the-stack-diagram-does-not-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interlude - Two Entry Points the Stack Diagram Does Not Show
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interlude - Two Entry Points the Stack Diagram Does Not Show">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zvol-block-device-data-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZVOL - block-device data path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control-plane-devzfs-ioctls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control plane - /dev/zfs ioctls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-2-foreground-vs-sync-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 2 - Foreground vs Sync Timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Diagram 2 - Foreground vs Sync Timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-foreground-vs-sync-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Foreground vs Sync Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-1-zpl-entry-points-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 1 - ZPL Entry Points (Linux)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-2-vnode-logic-portable-core-linux-glue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 2 - Vnode Logic (Portable Core + Linux Glue)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interlude-zil-synchronous-write-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interlude - ZIL (Synchronous Write Semantics)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-3-dmu-object-and-transaction-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 3 - DMU (Object and Transaction Core)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-4-dsl-datasets-snapshots-space-accounting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 4 - DSL (Datasets, Snapshots, Space Accounting)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-5-dbuf-arc-dirty-state-and-read-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 5 - dbuf + ARC (Dirty State and Read Cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 5 - dbuf + ARC (Dirty State and Read Cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-a-arc-state-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram A - ARC State Mental Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-6-zio-io-pipeline-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 6 - ZIO (I/O Pipeline Engine)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 6 - ZIO (I/O Pipeline Engine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-b-write-pipeline-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram B - Write Pipeline (Simplified)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-write-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - Write Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-7-vdev-topology-and-device-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 7 - VDEV (Topology and Device Dispatch)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-75-metaslab-allocator-where-writes-land" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer 7.5 - Metaslab Allocator (Where Writes Land)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer 7.5 - Metaslab Allocator (Where Writes Land)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-c-allocation-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram C - Allocation Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-cutting-spa-and-txg-orchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Cutting - SPA and txg Orchestration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-Cutting - SPA and txg Orchestration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-4-txg-state-machine-conceptual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 4 - txg State Machine (Conceptual)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mermaid-txg-sync-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mermaid - txg Sync Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-structures-you-should-recognize-early" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Structures You Should Recognize Early
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Structures You Should Recognize Early">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-5-from-file-to-physical-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 5 - From File to Physical Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kernel-and-userland-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel and Userland Boundary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kernel and Userland Boundary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagram-6-build-time-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 6 - Build-Time Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="End-to-End Flow Recap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write control flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read control flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-reading-order-for-new-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Reading Order for New Contributors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/01-architecture-overview.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-1-architecture-overview">Part 1 - Architecture Overview<a class="headerlink" href="#part-1-architecture-overview" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>If you are new to the OpenZFS codebase, here is the mental model I would build first.</p>
+</blockquote>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>This chapter is intentionally code-first. The goal is to help you answer:</p>
+<ul>
+<li>Where does a syscall enter ZFS?</li>
+<li>Which layer owns object semantics versus storage semantics?</li>
+<li>What happens immediately, and what is deferred to txg sync?</li>
+</ul>
+<p>If you keep one model in your head, use this:</p>
+<ul>
+<li>Foreground path accepts and records intent (<code>zpl_*</code>, <code>zfs_*</code>, <code>dmu_*</code>, <code>dbuf_*</code>).</li>
+<li>Sync path persists and commits intent (<code>txg_*</code>, <code>spa_sync</code>, <code>dsl_pool_sync</code>, <code>zio</code>, <code>vdev</code>).</li>
+</ul>
+<p>That split explains a lot of ZFS behavior that otherwise feels non-linear.</p>
+<p>Companion on-disk format reference:</p>
+<ul>
+<li><a href="https://github.com/mminkus/zfs-ondiskformat/">https://github.com/mminkus/zfs-ondiskformat/</a></li>
+</ul>
+<hr />
+<h2 id="diagram-1-big-picture-stack">Diagram 1 - Big Picture Stack<a class="headerlink" href="#diagram-1-big-picture-stack" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Userspace process
+    |
+    v
+Linux VFS
+    |
+    v
+ZPL adapters
+  module/os/linux/zfs/zpl_file.c
+  module/os/linux/zfs/zpl_inode.c
+    |
+    v
+Core vnode logic (portable)          (sibling: zfs_vnops_os.c holds the
+  module/zfs/zfs_vnops.c              other Linux vnops - readdir, mmap,
+                                      readlink - not the read/write hop)
+    |
+    +----------------------+
+    |                      |
+    v                      v
+DMU/DSL object semantics   ZIL sync semantics
+module/zfs/dmu*.c          module/zfs/zil.c
+module/zfs/dsl*.c
+    |
+    v
+dbuf + ARC (dirty state + cache)
+module/zfs/dbuf.c
+module/zfs/arc.c
+    |
+    v
+txg sync orchestration
+module/zfs/txg.c
+module/zfs/spa.c
+    |
+    v
+ZIO pipeline engine
+module/zfs/zio.c
+include/sys/zio_impl.h
+    |
+    v
+VDEV scheduler + backend
+module/zfs/vdev_queue.c
+module/os/linux/zfs/vdev_disk.c
+    |
+    v
+block layer / devices
+</code></pre></div>
+<h3 id="mermaid-big-picture-stack">Mermaid - Big Picture Stack<a class="headerlink" href="#mermaid-big-picture-stack" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph TD
+    APP["Userspace Process"]
+    VFS["Linux VFS"]
+    ZPL["ZPL Adapters&lt;br/&gt;module/os/linux/zfs/zpl_file.c"]
+    VNOPOS["Other Linux vnops (readdir, mmap, ...)&lt;br/&gt;module/os/linux/zfs/zfs_vnops_os.c"]
+    VNCORE["Core vnode logic&lt;br/&gt;module/zfs/zfs_vnops.c"]
+    ZIL["ZIL semantics&lt;br/&gt;module/zfs/zil.c"]
+    DMU["DMU&lt;br/&gt;module/zfs/dmu*.c"]
+    DSL["DSL&lt;br/&gt;module/zfs/dsl*.c"]
+    ARCDBUF["dbuf + ARC&lt;br/&gt;module/zfs/dbuf.c + module/zfs/arc.c"]
+    TXGSPA["txg + spa sync&lt;br/&gt;module/zfs/txg.c + module/zfs/spa.c"]
+    ZIO["ZIO pipeline&lt;br/&gt;module/zfs/zio.c"]
+    VDEV["VDEV queue/backend&lt;br/&gt;module/zfs/vdev_queue.c + module/os/linux/zfs/vdev_disk.c"]
+    DISK["Block Layer / Devices"]
+
+    APP --&gt; VFS --&gt; ZPL --&gt; VNCORE
+    ZPL --&gt; VNOPOS
+    VNCORE --&gt; DMU
+    VNCORE --&gt; ZIL
+    DMU --&gt; DSL
+    DMU --&gt; ARCDBUF
+    ARCDBUF --&gt; TXGSPA --&gt; ZIO --&gt; VDEV --&gt; DISK
+
+    style APP fill:#f5f5f5,stroke:#333
+    style VFS fill:#f5f5f5,stroke:#333
+    style ZPL fill:#d7ecff,stroke:#333
+    style VNOPOS fill:#d7ecff,stroke:#333
+    style VNCORE fill:#d7ecff,stroke:#333
+    style ZIL fill:#ffe8cc,stroke:#333
+    style DMU fill:#d9f7d6,stroke:#333
+    style DSL fill:#d9f7d6,stroke:#333
+    style ARCDBUF fill:#fff4c2,stroke:#333
+    style TXGSPA fill:#f7d9ff,stroke:#333
+    style ZIO fill:#f7d9ff,stroke:#333
+    style VDEV fill:#ffd9d9,stroke:#333
+    style DISK fill:#e0e0e0,stroke:#333</code></pre>
+<hr />
+<h2 id="interlude-two-entry-points-the-stack-diagram-does-not-show">Interlude - Two Entry Points the Stack Diagram Does Not Show<a class="headerlink" href="#interlude-two-entry-points-the-stack-diagram-does-not-show" title="Permanent link">&para;</a></h2>
+<p>The stack above is the POSIX file path. Two other front doors exist, and both skip layers you might assume are mandatory.</p>
+<h3 id="zvol-block-device-data-path">ZVOL - block-device data path<a class="headerlink" href="#zvol-block-device-data-path" title="Permanent link">&para;</a></h3>
+<p>Zvols are datasets exposed as block devices (<code>/dev/zd*</code>), so consumers (VMs, iSCSI targets, swap) enter from the Linux block layer and bypass ZPL/VFS entirely.</p>
+<p>Primary code:
+- <code>module/os/linux/zfs/zvol_os.c</code> (Linux block-layer glue)
+- <code>module/zfs/zvol.c</code> (portable state, ZIL log/replay)</p>
+<p>Entry shape (Linux):
+- <code>zvol_submit_bio()</code> (bio path) or <code>zvol_mq_queue_rq()</code> (blk-mq path) funnel into <code>zvol_request_impl()</code>.
+- <code>zvol_read()</code> / <code>zvol_write()</code> then call <code>dmu_read_uio_dnode()</code> / <code>dmu_write_uio_dnode()</code> directly, with <code>zil_commit()</code> for sync semantics.
+- The portable side in <code>module/zfs/zvol.c</code> owns state management and ZIL logging/replay (<code>zvol_log_write()</code>, <code>zvol_replay_write()</code>).</p>
+<p>From the DMU down, zvol I/O rides the same dbuf/ARC/txg/zio machinery as file I/O. The layers it skips are exactly ZPL and the vnode logic.</p>
+<h3 id="control-plane-devzfs-ioctls">Control plane - /dev/zfs ioctls<a class="headerlink" href="#control-plane-devzfs-ioctls" title="Permanent link">&para;</a></h3>
+<p>The <code>zfs</code> and <code>zpool</code> commands do not use the data path at all. Administrative operations are ioctls on <code>/dev/zfs</code>:</p>
+<ul>
+<li>Userland: <code>lib/libzfs_core/libzfs_core.c</code> opens <code>ZFS_DEV</code> and issues commands via <code>lzc_ioctl_fd()</code>; <code>lib/libzfs/</code> layers policy on top.</li>
+<li>Kernel entry (Linux): <code>zfsdev_ioctl()</code> in <code>module/os/linux/zfs/zfs_ioctl_os.c</code>, registered as <code>.unlocked_ioctl</code> in <code>zfsdev_fops</code>.</li>
+<li>Common handler: <code>zfsdev_ioctl_common()</code> in <code>module/zfs/zfs_ioctl.c</code>, which dispatches through the <code>zfs_ioc_vec[]</code> table.</li>
+</ul>
+<p>Many control-plane operations become DSL sync tasks that execute inside txg sync, so the control plane and the data path converge at the DSL/txg layer, not before.</p>
+<hr />
+<h2 id="diagram-2-foreground-vs-sync-timeline">Diagram 2 - Foreground vs Sync Timeline<a class="headerlink" href="#diagram-2-foreground-vs-sync-timeline" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Time ------------------------------------------------------------&gt;
+
+Thread A (write syscall)
+  zpl_iter_write
+    -&gt; zfs_write (called directly)
+      per chunk:
+        -&gt; dmu_tx_assign
+        -&gt; dmu_write_uio_dbuf
+        -&gt; dbuf_dirty
+        -&gt; dmu_tx_commit
+      -&gt; zil_commit (once, after the loop; sync writes / fsync path only)
+  return to caller
+
+txg sync thread (background)
+                     txg quiesce
+                        |
+                        v
+                     spa_sync(txg)
+                        -&gt; dsl_pool_sync
+                        -&gt; zio_root / zio pipeline
+                        -&gt; vdev queue/issue
+                        -&gt; uberblock rewrite
+                        -&gt; txg committed
+</code></pre></div>
+<p>The key insight is that syscall return and durable on-disk commit are decoupled by txg machinery.</p>
+<h3 id="mermaid-foreground-vs-sync-sequence">Mermaid - Foreground vs Sync Sequence<a class="headerlink" href="#mermaid-foreground-vs-sync-sequence" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as Userspace
+    participant V as Linux VFS
+    participant Z as ZPL
+    participant O as zfs_vnops_os.c
+    participant C as zfs_vnops.c
+    participant D as DMU
+    participant B as dbuf/ARC
+    participant T as txg_sync_thread
+    participant S as spa_sync
+    participant I as zio
+    participant Q as vdev queue/backend
+
+    U-&gt;&gt;V: write()
+    V-&gt;&gt;Z: zpl_iter_write()
+    Z-&gt;&gt;C: zfs_write() (direct call)
+    C-&gt;&gt;D: dmu_tx_assign() + dmu_write_uio_dbuf()
+    D-&gt;&gt;B: dbuf_dirty()
+    opt sync write / fsync semantics
+        C-&gt;&gt;C: zil_commit(...)
+    end
+    C--&gt;&gt;U: syscall returns
+
+    Note over T,S: later, in background sync
+    T-&gt;&gt;S: spa_sync(txg)
+    S-&gt;&gt;I: build/issue pipeline
+    I-&gt;&gt;Q: vdev_queue_io()
+    Q--&gt;&gt;S: I/O completion
+    S--&gt;&gt;T: txg committed</code></pre>
+<hr />
+<h2 id="layer-1-zpl-entry-points-linux">Layer 1 - ZPL Entry Points (Linux)<a class="headerlink" href="#layer-1-zpl-entry-points-linux" title="Permanent link">&para;</a></h2>
+<p>Start here: <code>module/os/linux/zfs/zpl_file.c</code>.</p>
+<p><code>zpl_file_operations</code> wires Linux VFS hooks:
+- <code>.read_iter = zpl_iter_read</code>
+- <code>.write_iter = zpl_iter_write</code></p>
+<p><code>zpl_iter_write()</code>:
+- builds a <code>zfs_uio_t</code>
+- takes credentials and fstrans markers
+- calls <code>zfs_write(ITOZ(ip), &amp;uio, flags, cr)</code></p>
+<p><code>zpl_iter_read()</code> does the same shape for <code>zfs_read(...)</code>.</p>
+<p>Related files:
+- <code>module/os/linux/zfs/zpl_file.c</code>
+- <code>module/os/linux/zfs/zpl_inode.c</code>
+- <code>module/os/linux/zfs/zpl_super.c</code></p>
+<hr />
+<h2 id="layer-2-vnode-logic-portable-core-linux-glue">Layer 2 - Vnode Logic (Portable Core + Linux Glue)<a class="headerlink" href="#layer-2-vnode-logic-portable-core-linux-glue" title="Permanent link">&para;</a></h2>
+<p>Path ownership is split across two files:</p>
+<ul>
+<li><code>module/zfs/zfs_vnops.c</code> contains the core <code>zfs_read()</code> and <code>zfs_write()</code> definitions.</li>
+<li><code>module/os/linux/zfs/zfs_vnops_os.c</code> contains Linux-specific vnode/VFS integration and helpers that call into core vnode logic.</li>
+</ul>
+<p><code>zfs_read()</code> responsibilities:
+- range locking
+- read chunking
+- DMU read submission
+- ARC interaction
+- optional sync behavior via <code>zil_commit()</code> for strict semantics</p>
+<p><code>zfs_write()</code> responsibilities:
+- append and offset handling
+- range locking and size/limit checks
+- quota checks
+- tx creation and assignment
+- DMU writes and metadata updates
+- commit policy (<code>O_SYNC</code>, <code>O_DSYNC</code>, dataset sync mode)</p>
+<p><code>module/zfs/zfs_vnops.c</code> is still usually the most valuable single file to read linearly first, then pair it with <code>module/os/linux/zfs/zfs_vnops_os.c</code> for Linux behavior details.</p>
+<hr />
+<h2 id="interlude-zil-synchronous-write-semantics">Interlude - ZIL (Synchronous Write Semantics)<a class="headerlink" href="#interlude-zil-synchronous-write-semantics" title="Permanent link">&para;</a></h2>
+<p>ZIL is the part most people miss the first time they read the write path.</p>
+<p>Primary code:
+- <code>module/zfs/zil.c</code>
+- <code>module/zfs/zfs_vnops.c</code> (call sites such as <code>zil_commit(...)</code>)</p>
+<p>What it does:
+- Records transaction records (itxs) for syscall-level operations that may need synchronous durability.
+- Allows <code>fsync</code>, <code>O_DSYNC</code>, and similar semantics without waiting for full txg sync.
+- Replays on mount/open after crash if needed, then normal txg processing takes over.</p>
+<p>Important nuance:
+- ZIL is not the final home of data blocks. It is a log for replay/ordering semantics.
+- Final durable pool state is still established by txg sync and uberblock progression.</p>
+<hr />
+<h2 id="layer-3-dmu-object-and-transaction-core">Layer 3 - DMU (Object and Transaction Core)<a class="headerlink" href="#layer-3-dmu-object-and-transaction-core" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/dmu.c</code>
+- <code>module/zfs/dmu_tx.c</code>
+- <code>include/sys/dmu.h</code>
+- <code>include/sys/dnode.h</code></p>
+<p>Key symbols:
+- <code>dmu_tx_assign()</code> and <code>dmu_tx_commit()</code>
+- <code>dmu_read()</code> and <code>dmu_write()</code>
+- <code>struct dnode</code> in <code>include/sys/dnode.h</code></p>
+<p>DMU write pattern:</p>
+<ol>
+<li>Create tx and declare holds.</li>
+<li><code>dmu_tx_assign()</code> attaches work to a txg.</li>
+<li><code>dmu_write()</code> updates object blocks via dbufs.</li>
+<li><code>dmu_tx_commit()</code> finalizes foreground transaction state.</li>
+</ol>
+<p>DMU gives atomicity at txg level, not per-syscall synchronous media commit.</p>
+<hr />
+<h2 id="layer-4-dsl-datasets-snapshots-space-accounting">Layer 4 - DSL (Datasets, Snapshots, Space Accounting)<a class="headerlink" href="#layer-4-dsl-datasets-snapshots-space-accounting" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/dsl_dataset.c</code>
+- <code>module/zfs/dsl_dir.c</code>
+- <code>module/zfs/dsl_pool.c</code>
+- <code>include/sys/dsl_dataset.h</code>
+- <code>include/sys/dsl_dir.h</code></p>
+<p>Key sync anchor:
+- <code>dsl_pool_sync()</code> in <code>module/zfs/dsl_pool.c</code></p>
+<p>What it does during sync:
+- drains dirty-dataset txg lists
+- calls <code>dsl_dataset_sync(...)</code>
+- coordinates root zio usage (<code>zio_root(...)</code>)
+- finalizes accounting updates after data blocks are written</p>
+<p>DMU answers "which object and bytes changed." DSL answers "how that change affects dataset/snapshot graph and accounting."</p>
+<hr />
+<h2 id="layer-5-dbuf-arc-dirty-state-and-read-cache">Layer 5 - dbuf + ARC (Dirty State and Read Cache)<a class="headerlink" href="#layer-5-dbuf-arc-dirty-state-and-read-cache" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/dbuf.c</code>
+- <code>module/zfs/arc.c</code></p>
+<p>Key anchors:
+- <code>dbuf_dirty(...)</code>
+- <code>arc_read(...)</code>
+- <code>arc_evict(...)</code>
+- <code>l2arc_feed_thread(...)</code></p>
+<p>Mental split:
+- <code>dbuf</code> tracks object/block state and dirty records across txgs.
+- ARC tracks cache residency, eviction, and buffer lifecycle.</p>
+<p>ARC state model anchors (from <code>include/sys/arc.h</code> and <code>include/sys/arc_impl.h</code>):
+- <code>ARC_STATE_MRU</code> and <code>ARC_STATE_MFU</code> for live cached data.
+- <code>ARC_STATE_MRU_GHOST</code> and <code>ARC_STATE_MFU_GHOST</code> for history of recently/frequently used evicted items.
+- Ghost hits feed adaptive behavior in eviction balancing (<code>arc_evict()</code> logic).
+- <code>ARC_STATE_L2C_ONLY</code> and L2ARC paths track data that resides on L2ARC devices but not in primary ARC data buffers.</p>
+<h3 id="diagram-a-arc-state-mental-model">Diagram A - ARC State Mental Model<a class="headerlink" href="#diagram-a-arc-state-mental-model" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>           cache hit / warm data
+      +-------------------------------+
+      |                               v
+  +-------+    promote on reuse    +-------+
+  | MRU   | ---------------------&gt; | MFU   |
+  +---+---+                        +---+---+
+      |                                |
+      | evict                           | evict
+      v                                v
+  +-----------+   ghost hit         +-----------+
+  | MRU_GHOST | ------------------&gt; | MFU_GHOST |
+  +-----------+                     +-----------+
+
+L2ARC side path:
+  eligible ARC buffers -&gt; l2arc_feed_thread() -&gt; L2C_ONLY residency
+</code></pre></div>
+<p>On writes, data becomes dirty in memory first.
+On reads, <code>arc_read()</code> can satisfy from cache or dispatch lower I/O on miss.</p>
+<hr />
+<h2 id="layer-6-zio-io-pipeline-engine">Layer 6 - ZIO (I/O Pipeline Engine)<a class="headerlink" href="#layer-6-zio-io-pipeline-engine" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/zio.c</code>
+- <code>include/sys/zio.h</code>
+- <code>include/sys/zio_impl.h</code></p>
+<p>Core types:
+- <code>struct zio</code> in <code>include/sys/zio.h</code>
+- <code>enum zio_stage</code> in <code>include/sys/zio_impl.h</code></p>
+<p>The stage enum defines 27 stage bits (<code>ZIO_STAGE_OPEN</code> through <code>ZIO_STAGE_DONE</code>).
+Pipelines are composed with bitmasks, so different I/O types run different stage sets.</p>
+<p>Allocation bridge worth calling out:
+- During <code>ZIO_STAGE_DVA_ALLOCATE</code>, <code>zio_dva_allocate()</code> drives block allocation.
+- That path calls into metaslab allocation (<code>metaslab_alloc(...)</code>) to choose real on-disk regions.</p>
+<h3 id="diagram-b-write-pipeline-simplified">Diagram B - Write Pipeline (Simplified)<a class="headerlink" href="#diagram-b-write-pipeline-simplified" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>zio create
+  |
+  v
+OPEN
+  -&gt; WRITE_BP_INIT
+  -&gt; ISSUE_ASYNC
+  -&gt; WRITE_COMPRESS
+  -&gt; ENCRYPT
+  -&gt; CHECKSUM_GENERATE
+  -&gt; DVA_THROTTLE
+  -&gt; DVA_ALLOCATE
+       -&gt; metaslab_alloc(...) in module/zfs/metaslab.c
+  -&gt; READY
+  -&gt; VDEV_IO_START
+  -&gt; VDEV_IO_DONE
+  -&gt; VDEV_IO_ASSESS
+  -&gt; DONE
+</code></pre></div>
+<h3 id="mermaid-write-pipeline">Mermaid - Write Pipeline<a class="headerlink" href="#mermaid-write-pipeline" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph LR
+    OPEN["OPEN"] --&gt; BP["WRITE_BP_INIT"]
+    BP --&gt; ASYNC["ISSUE_ASYNC"]
+    ASYNC --&gt; COMP["WRITE_COMPRESS"]
+    COMP --&gt; ENC["ENCRYPT"]
+    ENC --&gt; CKSUM["CHECKSUM_GENERATE"]
+    CKSUM --&gt; THROTTLE["DVA_THROTTLE"]
+    THROTTLE --&gt; ALLOC["DVA_ALLOCATE"]
+    ALLOC --&gt; META["metaslab_alloc(...)"]
+    META --&gt; READY["READY"]
+    READY --&gt; IO1["VDEV_IO_START"]
+    IO1 --&gt; IO2["VDEV_IO_DONE"]
+    IO2 --&gt; ASSESS["VDEV_IO_ASSESS"]
+    ASSESS --&gt; DONE["DONE"]
+
+    style ALLOC fill:#ffe8cc,stroke:#333
+    style META fill:#d9f7d6,stroke:#333</code></pre>
+<hr />
+<h2 id="layer-7-vdev-topology-and-device-dispatch">Layer 7 - VDEV (Topology and Device Dispatch)<a class="headerlink" href="#layer-7-vdev-topology-and-device-dispatch" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/vdev.c</code>
+- <code>module/zfs/vdev_queue.c</code>
+- <code>module/os/linux/zfs/vdev_disk.c</code>
+- <code>include/sys/vdev_impl.h</code></p>
+<p>Key anchors:
+- <code>struct vdev</code> in <code>include/sys/vdev_impl.h</code>
+- <code>vdev_queue_io(...)</code>
+- <code>vdev_queue_io_done(...)</code>
+- <code>vdev_disk_io_start(...)</code></p>
+<p>VDEV converts logical requests into topology-aware physical operations (mirror, raidz, etc.), then queues/aggregates and submits to device backends.</p>
+<hr />
+<h2 id="layer-75-metaslab-allocator-where-writes-land">Layer 7.5 - Metaslab Allocator (Where Writes Land)<a class="headerlink" href="#layer-75-metaslab-allocator-where-writes-land" title="Permanent link">&para;</a></h2>
+<p>If you ever ask "how does ZFS decide where to put this block?", this is the subsystem.</p>
+<p>Primary code:
+- <code>module/zfs/metaslab.c</code>
+- <code>module/zfs/vdev.c</code>
+- <code>include/sys/vdev_impl.h</code> (<code>vdev_mg</code>)
+- <code>include/sys/spa.h</code> (<code>spa_normal_class</code>, <code>spa_log_class</code>, <code>spa_special_class</code>)</p>
+<p>Key anchors:
+- <code>zio_dva_allocate(...)</code> in <code>module/zfs/zio.c</code>
+- <code>metaslab_alloc(...)</code> in <code>module/zfs/metaslab.c</code>
+- <code>vdev_metaslab_group_create(...)</code> in <code>module/zfs/vdev.c</code></p>
+<h3 id="diagram-c-allocation-hierarchy">Diagram C - Allocation Hierarchy<a class="headerlink" href="#diagram-c-allocation-hierarchy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>spa class selection
+  (normal / special / log)
+          |
+          v
+top-level vdev metaslab group (vdev_mg)
+          |
+          v
+metaslabs on that vdev
+          |
+          v
+metaslab_alloc(...) chooses offset/asize
+          |
+          v
+DVA(s) written into blkptr_t
+</code></pre></div>
+<p>This is where fragmentation, class biasing, and free-space topology directly impact placement decisions and write amplification behavior.</p>
+<hr />
+<h2 id="cross-cutting-spa-and-txg-orchestration">Cross-Cutting - SPA and txg Orchestration<a class="headerlink" href="#cross-cutting-spa-and-txg-orchestration" title="Permanent link">&para;</a></h2>
+<p>Primary code:
+- <code>module/zfs/txg.c</code>
+- <code>module/zfs/spa.c</code>
+- <code>include/sys/spa.h</code>
+- <code>include/sys/spa_impl.h</code></p>
+<p>Key anchors:
+- <code>txg_sync_thread(...)</code> in <code>module/zfs/txg.c</code>
+- <code>spa_sync(...)</code> in <code>module/zfs/spa.c</code>
+- <code>spa_sync_iterate_to_convergence(...)</code> in <code>module/zfs/spa.c</code></p>
+<p><code>txg_sync_thread()</code> eventually calls <code>spa_sync(spa, txg)</code>. <code>spa_sync()</code> drives the transaction to convergence: dataset sync, frees, metaslabs/vdev work, and final config/uberblock rewrite.</p>
+<h3 id="diagram-4-txg-state-machine-conceptual">Diagram 4 - txg State Machine (Conceptual)<a class="headerlink" href="#diagram-4-txg-state-machine-conceptual" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>             +---------+
+             |  OPEN   |  accepts new work
+             +----+----+
+                  |
+                  v
+             +---------+
+             | QUIESCE |  stop taking new work for this txg
+             +----+----+
+                  |
+                  v
+             +---------+
+             |  SYNC   |  spa_sync / dsl_pool_sync / zio / vdev
+             +----+----+
+                  |
+                  v
+             +---------+
+             | SYNCED  |  durable commit boundary advanced
+             +---------+
+</code></pre></div>
+<h3 id="mermaid-txg-sync-flow">Mermaid - txg Sync Flow<a class="headerlink" href="#mermaid-txg-sync-flow" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph LR
+    OPEN["OPEN"] --&gt; QUIESCE["QUIESCE"]
+    QUIESCE --&gt; SYNCPHASE["SYNC phase"]
+    SYNCPHASE --&gt; SYNCED["SYNCED"]
+
+    subgraph SYNCDETAIL["inside SYNC phase"]
+        direction LR
+        SPASYNC["spa_sync()"] --&gt; DSLSYNC["dsl_pool_sync()"]
+        DSLSYNC --&gt; ZIOROOT["zio_root()/zio pipeline"]
+        ZIOROOT --&gt; VDEVIO["vdev queue + backend I/O"]
+        VDEVIO --&gt; UBER["uberblock/config rewrite"]
+    end
+
+    SYNCPHASE -. runs .-&gt; SPASYNC
+
+    style OPEN fill:#d7ecff,stroke:#333
+    style QUIESCE fill:#fff4c2,stroke:#333
+    style SYNCPHASE fill:#f7d9ff,stroke:#333
+    style SYNCED fill:#d9f7d6,stroke:#333</code></pre>
+<hr />
+<h2 id="data-structures-you-should-recognize-early">Data Structures You Should Recognize Early<a class="headerlink" href="#data-structures-you-should-recognize-early" title="Permanent link">&para;</a></h2>
+<h3 id="diagram-5-from-file-to-physical-blocks">Diagram 5 - From File to Physical Blocks<a class="headerlink" href="#diagram-5-from-file-to-physical-blocks" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>znode_t (POSIX file view)
+  |
+  v
+sa_handle / inode metadata
+  |
+  v
+dnode_t (DMU object in memory)
+  |
+  v
+dbuf tree (dirty + cached object blocks)
+  |
+  v
+blkptr_t references
+  |
+  v
+zio_t operations
+  |
+  v
+vdev_t tree (top-level -&gt; leaf)
+</code></pre></div>
+<p>Reference headers:
+- <code>include/sys/zfs_znode.h</code>
+- <code>include/sys/dnode.h</code>
+- <code>include/sys/dbuf.h</code>
+- <code>include/sys/spa.h</code> (<code>blkptr_t</code>)
+- <code>include/sys/zio.h</code>
+- <code>include/sys/vdev_impl.h</code></p>
+<p>One structure worth recognizing early even though it is not on the vertical
+path above: ZAP (ZFS Attribute Processor), implemented in <code>module/zfs/zap.c</code>
+and <code>module/zfs/zap_micro.c</code>. Directory entries and most name-to-value
+metadata (properties, object tables) are stored as ZAP objects, so ZAP sits
+between ZPL name operations and the DMU. Representative call path: directory
+lookup via <code>zfs_dirent_lock()</code> in <code>module/os/linux/zfs/zfs_dir.c</code> resolves
+names through <code>zfs_match_find()</code>, which calls <code>zap_lookup()</code> on the
+directory's ZAP object to map name -&gt; object number.</p>
+<hr />
+<h2 id="kernel-and-userland-boundary">Kernel and Userland Boundary<a class="headerlink" href="#kernel-and-userland-boundary" title="Permanent link">&para;</a></h2>
+<h3 id="diagram-6-build-time-boundary">Diagram 6 - Build-Time Boundary<a class="headerlink" href="#diagram-6-build-time-boundary" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Kernel side
+  module/zfs/
+  module/os/linux/zfs/
+       ^
+       | shared headers + shared tables
+       v
+Shared
+  include/
+  include/sys/
+  module/zcommon/
+       ^
+       | linked by tools/libraries
+       v
+Userland side
+  lib/libzfs/
+  lib/libzfs_core/
+  lib/libzpool/
+  cmd/zfs/ cmd/zpool/ cmd/zdb/ cmd/zhack.c cmd/ztest.c
+</code></pre></div>
+<p>Why this matters:
+- Many names and types are shared, but execution context is different.
+- <code>libzpool</code> lets userland tools reuse substantial kernel-style logic for inspection/testing workflows.</p>
+<hr />
+<h2 id="end-to-end-flow-recap">End-to-End Flow Recap<a class="headerlink" href="#end-to-end-flow-recap" title="Permanent link">&para;</a></h2>
+<h3 id="write-control-flow">Write control flow<a class="headerlink" href="#write-control-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>write()
+  -&gt; zpl_iter_write()                      (module/os/linux/zfs/zpl_file.c)
+    -&gt; zfs_write()                         (module/zfs/zfs_vnops.c; called directly -
+                                            zfs_vnops_os.c holds the other Linux vnops)
+      -&gt; dmu_tx_assign() / dmu_write_uio_dbuf() (module/zfs/dmu_tx.c, module/zfs/dmu.c)
+        -&gt; dbuf_dirty()                    (module/zfs/dbuf.c)
+          -&gt; txg_sync_thread()             (module/zfs/txg.c)
+            -&gt; spa_sync()                  (module/zfs/spa.c)
+              -&gt; dsl_pool_sync()           (module/zfs/dsl_pool.c)
+                -&gt; zio pipeline            (module/zfs/zio.c)
+                  -&gt; vdev_queue_io()       (module/zfs/vdev_queue.c)
+                    -&gt; vdev_disk_io_start() (module/os/linux/zfs/vdev_disk.c)
+</code></pre></div>
+<h3 id="read-control-flow">Read control flow<a class="headerlink" href="#read-control-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>read()
+  -&gt; zpl_iter_read()                       (module/os/linux/zfs/zpl_file.c)
+    -&gt; zfs_read()                          (module/zfs/zfs_vnops.c; called directly)
+      -&gt; dmu read path                     (module/zfs/dmu.c + module/zfs/dbuf.c)
+        -&gt; arc_read()                      (module/zfs/arc.c)
+          -&gt; zio read pipeline on miss     (module/zfs/zio.c)
+            -&gt; vdev queue/backend          (module/zfs/vdev_queue.c + module/os/linux/zfs/vdev_disk.c)
+</code></pre></div>
+<hr />
+<h2 id="practical-reading-order-for-new-contributors">Practical Reading Order for New Contributors<a class="headerlink" href="#practical-reading-order-for-new-contributors" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>module/os/linux/zfs/zpl_file.c</code></li>
+<li><code>module/zfs/zfs_vnops.c</code></li>
+<li><code>module/os/linux/zfs/zfs_vnops_os.c</code></li>
+<li><code>module/zfs/zil.c</code></li>
+<li><code>module/zfs/dmu_tx.c</code></li>
+<li><code>module/zfs/dmu.c</code></li>
+<li><code>module/zfs/dbuf.c</code></li>
+<li><code>module/zfs/arc.c</code></li>
+<li><code>module/zfs/txg.c</code></li>
+<li><code>module/zfs/spa.c</code></li>
+<li><code>include/sys/zio_impl.h</code></li>
+<li><code>module/zfs/zio.c</code></li>
+<li><code>module/zfs/metaslab.c</code></li>
+<li><code>module/zfs/vdev_queue.c</code></li>
+<li><code>module/os/linux/zfs/vdev_disk.c</code></li>
+</ol>
+<p>If you make one "map pass" through those files, most of the source tree stops feeling opaque.</p>
+<hr />
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>-&gt; <a href="../02-repo-layout/">Part 2 - Repository Layout</a>: now map this mental model to the actual tree layout so you can find code quickly.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Home
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../02-repo-layout/" class="md-footer__link md-footer__link--next" aria-label="Next: Part 2: Repository Layout">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Part 2: Repository Layout
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

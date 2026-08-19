@@ -1,0 +1,2443 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/08-send-receive/">
+      
+      
+        <link rel="prev" href="../07-pool-import/">
+      
+      
+        <link rel="next" href="../09-debugging-toolbox/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 8: Send and Receive - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-8-send-and-receive-the-replication-path" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 8: Send and Receive
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-architecture-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-repo-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-contributing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-pool-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-send-and-receive-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Send and Receive Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-userland-entry-zfs-send-and-zfs-receive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Userland Entry: zfs send and zfs receive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 - Userland Entry: zfs send and zfs receive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-send-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The send side
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-receive-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The receive side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-the-stream-format-dmu_replay_record_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - The Stream Format: dmu_replay_record_t
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 - The Stream Format: dmu_replay_record_t">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-begin-record-is-the-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The BEGIN record is the contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-kernel-send-path-modulezfsdmu_sendc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - Kernel Send Path: module/zfs/dmu_send.c
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 - Kernel Send Path: module/zfs/dmu_send.c">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3a-setup_featureflags-where-flags-become-or-fail-to-become-stream-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3a - setup_featureflags(): where flags become (or fail to become) stream bits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3b-the-send-thread-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b - The send thread pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3c-do_dump-record-emission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3c - do_dump() record emission
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-kernel-receive-path-modulezfsdmu_recvc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - Kernel Receive Path: module/zfs/dmu_recv.c
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 - Kernel Receive Path: module/zfs/dmu_recv.c">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#4a-dmu_recv_begin-and-the-check-gauntlet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4a - dmu_recv_begin() and the check gauntlet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4b-dmu_recv_begin_sync-the-landing-zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4b - dmu_recv_begin_sync(): the landing zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4c-dmu_recv_stream-reader-writer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4c - dmu_recv_stream(): reader + writer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4d-dmu_recv_end-one-atomic-rename" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4d - dmu_recv_end(): one atomic rename
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#case-study-the-l-deadlock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case Study - The -L Deadlock
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Case Study - The -L Deadlock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-2020-root-why-the-check-exists-at-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 2020 root: why the check exists at all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-deadlock-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The deadlock scenario
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upstream-state-at-the-pin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upstream state at the pin
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-resumable-receive-and-resume-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - Resumable Receive and Resume Tokens
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-raw-sends-brief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6 - Raw Sends (Brief)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-for-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability for Debugging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observability for Debugging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zstream-dump-read-the-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zstream dump: read the contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zfs-send-nvp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs send -nvP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#receive-side-error-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Receive-side error mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kernel-side-breadcrumbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel-side breadcrumbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-sendreceive-fails-in-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Send/Receive Fails in Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-debugging-toolbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-send-and-receive-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Send and Receive Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-userland-entry-zfs-send-and-zfs-receive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Userland Entry: zfs send and zfs receive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 - Userland Entry: zfs send and zfs receive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-send-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The send side
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-receive-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The receive side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-the-stream-format-dmu_replay_record_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - The Stream Format: dmu_replay_record_t
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 - The Stream Format: dmu_replay_record_t">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-begin-record-is-the-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The BEGIN record is the contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-kernel-send-path-modulezfsdmu_sendc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - Kernel Send Path: module/zfs/dmu_send.c
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 - Kernel Send Path: module/zfs/dmu_send.c">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3a-setup_featureflags-where-flags-become-or-fail-to-become-stream-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3a - setup_featureflags(): where flags become (or fail to become) stream bits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3b-the-send-thread-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b - The send thread pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3c-do_dump-record-emission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3c - do_dump() record emission
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-kernel-receive-path-modulezfsdmu_recvc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - Kernel Receive Path: module/zfs/dmu_recv.c
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 - Kernel Receive Path: module/zfs/dmu_recv.c">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#4a-dmu_recv_begin-and-the-check-gauntlet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4a - dmu_recv_begin() and the check gauntlet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4b-dmu_recv_begin_sync-the-landing-zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4b - dmu_recv_begin_sync(): the landing zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4c-dmu_recv_stream-reader-writer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4c - dmu_recv_stream(): reader + writer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4d-dmu_recv_end-one-atomic-rename" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4d - dmu_recv_end(): one atomic rename
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#case-study-the-l-deadlock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case Study - The -L Deadlock
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Case Study - The -L Deadlock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-2020-root-why-the-check-exists-at-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 2020 root: why the check exists at all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-deadlock-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The deadlock scenario
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upstream-state-at-the-pin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upstream state at the pin
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-resumable-receive-and-resume-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 - Resumable Receive and Resume Tokens
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-raw-sends-brief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6 - Raw Sends (Brief)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-for-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability for Debugging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observability for Debugging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zstream-dump-read-the-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zstream dump: read the contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zfs-send-nvp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs send -nvP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#receive-side-error-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Receive-side error mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kernel-side-breadcrumbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel-side breadcrumbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-sendreceive-fails-in-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Send/Receive Fails in Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Flow Recap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/08-send-receive.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-8-send-and-receive-the-replication-path">Part 8 - Send and Receive: The Replication Path<a class="headerlink" href="#part-8-send-and-receive-the-replication-path" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>A send stream is a contract between two pools' histories, and the
+feature flags in its first record are the fine print.</p>
+</blockquote>
+<h2 id="why-this-chapter-matters">Why This Chapter Matters<a class="headerlink" href="#why-this-chapter-matters" title="Permanent link">&para;</a></h2>
+<p>Send/receive is where three things that are usually separate concerns
+collide: the on-disk format (Part 4), feature flags (Part 5), and the
+divergent histories of two different pools. A stream generated on one
+system must be replayable, byte for byte, on a system with a different
+pool version, different enabled features, and a different snapshot
+lineage.</p>
+<p>Most replication failures are not I/O errors. They are contract
+violations between sender and receiver: the stream promises something
+the receiver cannot honor, or the receiver requires something the
+stream does not carry. Worse, the error messages often point the wrong
+way - the receive side prints the error, but the bug is frequently in
+what the send side chose to put (or silently not put) in the stream.
+This chapter traces both directions end to end and closes with a real
+case study of exactly such a failure: the <code>-L</code> deadlock, where
+<code>zfs receive</code> demands a flag that <code>zfs send</code> was already given.</p>
+<p>The core structural insights up front:</p>
+<ul>
+<li>The BEGIN record's <code>drr_versioninfo</code> feature flags are the entire
+  compatibility contract. The receiver decides whether it can accept a
+  stream almost exclusively from that one 64-bit word.</li>
+<li>Send flags like <code>-L</code>, <code>-w</code>, <code>-e</code>, <code>-c</code> are requests, not commands:
+  <code>setup_featureflags()</code> combines them with <em>source dataset state</em> to
+  decide what actually goes in the stream.</li>
+<li>The receive is not applied in place. It lands in a hidden <code>%recv</code>
+  child (or a brand-new inconsistent dataset) and only becomes visible
+  in one atomic sync task at <code>dmu_recv_end()</code>.</li>
+</ul>
+<hr />
+<h2 id="scope-and-assumptions">Scope and Assumptions<a class="headerlink" href="#scope-and-assumptions" title="Permanent link">&para;</a></h2>
+<p>To keep the trace concrete, we assume:</p>
+<ul>
+<li>Linux platform, <code>zfs send tank/fs@b | zfs recv tank2/fs</code> style usage</li>
+<li>single-snapshot sends via the modern ioctl path first; <code>-R</code>/<code>-I</code>
+  package streams, resume (<code>-t</code>), and raw (<code>-w</code>) are covered where
+  they change the path</li>
+<li>redaction is summarized only briefly</li>
+</ul>
+<p>Line-number anchors in this chapter are based on the reference revision
+listed in <code>README.md</code> (<code>0f9564e85</code>). If you are on a newer OpenZFS
+commit, expect some drift and use symbol names to relocate.</p>
+<hr />
+<h2 id="diagram-1-send-and-receive-sequence">Diagram 1 - Send and Receive Sequence<a class="headerlink" href="#diagram-1-send-and-receive-sequence" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant SC as zfs send (CLI)
+    participant LZ as libzfs/libzfs_core
+    participant SK as dmu_send.c (kernel A)
+    participant P as pipe / network
+    participant RC as zfs recv (CLI)
+    participant RK as dmu_recv.c (kernel B)
+
+    SC-&gt;&gt;LZ: zfs_send_one() / zfs_send()
+    LZ-&gt;&gt;SK: ZFS_IOC_SEND_NEW (or legacy ZFS_IOC_SEND)
+    SK-&gt;&gt;SK: setup_featureflags() from flags + dataset state
+    SK-&gt;&gt;P: DRR_BEGIN (versioninfo = hdrtype + featureflags)
+    SK-&gt;&gt;P: DRR_OBJECT / DRR_WRITE / DRR_FREE ... DRR_END
+
+    RC-&gt;&gt;P: read BEGIN record in userland
+    RC-&gt;&gt;LZ: zfs_receive() -&gt; zfs_receive_one()
+    LZ-&gt;&gt;RK: ZFS_IOC_RECV_NEW (or legacy ZFS_IOC_RECV)
+    RK-&gt;&gt;RK: dmu_recv_begin() check gauntlet (sync task)
+    RK-&gt;&gt;RK: dmu_recv_stream() reader + writer threads
+    RK-&gt;&gt;RK: dmu_recv_end() atomic clone swap / snapshot
+    RK--&gt;&gt;RC: 0 or errno (ZFS_ERR_*)</code></pre>
+<hr />
+<h2 id="step-1-userland-entry-zfs-send-and-zfs-receive">Step 1 - Userland Entry: <code>zfs send</code> and <code>zfs receive</code><a class="headerlink" href="#step-1-userland-entry-zfs-send-and-zfs-receive" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>cmd/zfs/zfs_main.c</code></li>
+<li><code>lib/libzfs/libzfs_sendrecv.c</code></li>
+<li><code>lib/libzfs_core/libzfs_core.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>zfs_do_send()</code> (<code>cmd/zfs/zfs_main.c:4730</code>)</li>
+<li><code>zfs_do_receive()</code> (<code>cmd/zfs/zfs_main.c:5138</code>)</li>
+<li><code>zfs_send()</code> (<code>lib/libzfs/libzfs_sendrecv.c:2558</code>)</li>
+<li><code>zfs_send_one()</code> (<code>libzfs_sendrecv.c:2863</code>)</li>
+<li><code>zfs_send_resume()</code> (<code>libzfs_sendrecv.c:2054</code>)</li>
+<li><code>zfs_receive()</code> (<code>libzfs_sendrecv.c:5585</code>)</li>
+<li><code>zfs_receive_impl()</code> (<code>libzfs_sendrecv.c:5441</code>)</li>
+<li><code>lzc_send_resume_redacted()</code> (<code>lib/libzfs_core/libzfs_core.c:901</code>)</li>
+<li><code>recv_impl()</code> (<code>libzfs_core.c:1047</code>)</li>
+</ul>
+<h3 id="the-send-side">The send side<a class="headerlink" href="#the-send-side" title="Permanent link">&para;</a></h3>
+<p><code>zfs_do_send()</code> parses flags into a <code>sendflags_t</code>: <code>-L</code> sets
+<code>flags.largeblock</code> (<code>zfs_main.c:4831</code>), <code>-e</code> sets <code>embed_data</code>, <code>-c</code>
+sets <code>compress</code>, and <code>-w</code> sets <code>raw</code> <em>plus</em> <code>compress</code>, <code>embed_data</code>,
+and <code>largeblock</code> all at once (<code>zfs_main.c:4843</code>). Then it picks one of
+three libzfs paths:</p>
+<ol>
+<li><code>-t &lt;token&gt;</code>: <code>zfs_send_resume()</code> decodes the resume token and
+   restarts a partial send (Step 5).</li>
+<li><code>-R</code> or <code>-I</code> ("everything except -R and -I use the new, cleaner
+   code path", per the comment above the dispatch at
+   <code>zfs_main.c:4999</code>): <code>zfs_send()</code> walks snapshot lists per
+   filesystem (<code>send_iterate_fs()</code>, <code>libzfs_sendrecv.c:498</code>) and emits
+   one substream per snapshot via <code>dump_ioctl()</code>
+   (<code>libzfs_sendrecv.c:811</code>), which issues the <em>legacy</em> <code>ZFS_IOC_SEND</code>
+   ioctl (<code>libzfs_sendrecv.c:835</code>). The whole package is wrapped in a
+   compound-stream header written in userland by
+   <code>send_prelim_records()</code> (<code>libzfs_sendrecv.c:2198</code>), which sets the
+   header type to <code>DMU_COMPOUNDSTREAM</code> (<code>libzfs_sendrecv.c:2285</code>) and
+   carries an nvlist of filesystems/properties as the BEGIN payload.</li>
+<li>everything else: <code>zfs_send_one()</code> -&gt;
+   <code>zfs_send_one_cb_impl()</code> (<code>libzfs_sendrecv.c:2655</code>) -&gt;
+   <code>lzc_send_redacted()</code> (<code>libzfs_core.c:819</code>), which lands in
+   <code>lzc_send_resume_redacted_cb_impl()</code> (<code>libzfs_core.c:849</code>). That
+   function translates <code>LZC_SEND_FLAG_*</code> bits into nvlist booleans -
+   <code>"largeblockok"</code>, <code>"embedok"</code>, <code>"compressok"</code>, <code>"rawok"</code>,
+   <code>"savedok"</code> - and issues <code>ZFS_IOC_SEND_NEW</code> (<code>libzfs_core.c:877</code>).</li>
+</ol>
+<p>So there are two send ioctls at the pin:</p>
+<ul>
+<li><code>ZFS_IOC_SEND_NEW</code> -&gt; <code>zfs_ioc_send_new()</code>
+  (<code>module/zfs/zfs_ioctl.c:6947</code>) -&gt; <code>dmu_send()</code> (by name)</li>
+<li><code>ZFS_IOC_SEND</code> (legacy, used by <code>-R</code>/<code>-I</code> per-snapshot substreams)
+  -&gt; <code>zfs_ioc_send()</code> (<code>zfs_ioctl.c:5930</code>) -&gt; <code>dmu_send_obj()</code> (by
+  objset id); the lzc flags arrive as raw bits in <code>zc_flags</code>
+  (<code>0x1</code> embedok, <code>0x2</code> large_block, <code>0x4</code> compress, <code>0x8</code> raw,
+  <code>0x10</code> saved, <code>zfs_ioctl.c:5935</code>)</li>
+</ul>
+<p>Both handlers build a <code>dmu_send_outparams_t</code> whose <code>dso_outfunc</code> is
+<code>dump_bytes()</code> (<code>zfs_ioctl.c:5862</code>): every record the DMU send engine
+emits is handed to a <code>zfs_file_write()</code> on the target fd, dispatched
+through a single-threaded <code>z_send</code> taskq (<code>dump_bytes_init()</code>,
+<code>zfs_ioctl.c:5883</code>).</p>
+<p>Size estimation (<code>zfs send -nv</code>) uses a third ioctl,
+<code>ZFS_IOC_SEND_SPACE</code> (<code>lzc_send_space()</code>, <code>libzfs_core.c:1012</code>;
+<code>zfs_ioc_send_space()</code>, <code>zfs_ioctl.c:7044</code>), which runs
+<code>dmu_send_estimate_fast()</code> (<code>module/zfs/dmu_send.c:3029</code>) instead of a
+real traversal.</p>
+<h3 id="the-receive-side">The receive side<a class="headerlink" href="#the-receive-side" title="Permanent link">&para;</a></h3>
+<p><code>zfs_do_receive()</code> parses <code>-F</code> (<code>flags.force</code>), <code>-s</code>
+(<code>flags.resumable</code>), <code>-A</code> (abort a suspended receive), <code>-c</code> (healing
+receive), <code>-o</code>/<code>-x</code> property overrides. <code>zfs_receive()</code> -&gt;
+<code>zfs_receive_impl()</code> reads the BEGIN record <em>in userland</em>
+(<code>libzfs_sendrecv.c:5475</code>), byteswaps it if needed, screens the
+feature flags with <code>DMU_STREAM_SUPPORTED()</code> (<code>libzfs_sendrecv.c:5517</code>),
+and dispatches on header type: <code>DMU_SUBSTREAM</code> -&gt;
+<code>zfs_receive_one()</code> (<code>libzfs_sendrecv.c:4418</code>); <code>DMU_COMPOUNDSTREAM</code>
+-&gt; <code>zfs_receive_package()</code> (<code>libzfs_sendrecv.c:3822</code>), which unpacks
+the userland-generated nvlist, performs <code>-F</code>-driven snapshot
+destroys/renames, then loops calling <code>zfs_receive_impl()</code> per
+substream.</p>
+<p><code>zfs_receive_one()</code> funnels into libzfs_core's <code>recv_impl()</code>
+(<code>libzfs_core.c:1047</code>), which picks the kernel interface: if
+<code>resumable || heal || raw || wkeydata != NULL || payload</code> it packs an
+nvlist (<code>"begin_record"</code>, <code>"input_fd"</code>, <code>"force"</code>, <code>"resumable"</code>,
+<code>"heal"</code>, props) and issues <code>ZFS_IOC_RECV_NEW</code> (<code>libzfs_core.c:1147</code>,
+handler <code>zfs_ioc_recv_new()</code> at <code>zfs_ioctl.c:5748</code>); otherwise it uses
+the legacy <code>ZFS_IOC_RECV</code> (<code>libzfs_core.c:1204</code>, handler
+<code>zfs_ioc_recv()</code> at <code>zfs_ioctl.c:5644</code>). Both converge on
+<code>zfs_ioc_recv_impl()</code> (<code>zfs_ioctl.c:5302</code>), which calls the three-act
+kernel sequence: <code>dmu_recv_begin()</code> (<code>zfs_ioctl.c:5330</code>),
+<code>dmu_recv_stream()</code> (<code>zfs_ioctl.c:5437</code>), <code>dmu_recv_end()</code>
+(<code>zfs_ioctl.c:5457</code>), with received properties applied in between via
+<code>zfs_set_prop_nvlist()</code> (<code>zfs_ioctl.c:5399</code>).</p>
+<hr />
+<h2 id="step-2-the-stream-format-dmu_replay_record_t">Step 2 - The Stream Format: <code>dmu_replay_record_t</code><a class="headerlink" href="#step-2-the-stream-format-dmu_replay_record_t" title="Permanent link">&para;</a></h2>
+<p>Primary file:</p>
+<ul>
+<li><code>include/sys/zfs_ioctl.h</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>dmu_replay_record_t</code> and the <code>DRR_*</code> enum (<code>zfs_ioctl.h:246</code>)</li>
+<li><code>drr_versioninfo</code> layout comment (<code>zfs_ioctl.h:77</code>)</li>
+<li><code>DMU_GET_STREAM_HDRTYPE</code> / <code>DMU_GET_FEATUREFLAGS</code>
+  (<code>zfs_ioctl.h:101</code>, <code>zfs_ioctl.h:104</code>)</li>
+<li><code>DMU_BACKUP_FEATURE_*</code> (<code>zfs_ioctl.h:118</code>)</li>
+<li><code>DMU_BACKUP_FEATURE_MASK</code> / <code>DMU_STREAM_SUPPORTED</code>
+  (<code>zfs_ioctl.h:155</code>, <code>zfs_ioctl.h:165</code>)</li>
+<li><code>DMU_BACKUP_MAGIC</code> (<code>zfs_ioctl.h:171</code>)</li>
+</ul>
+<p>A send stream is a flat sequence of fixed-size (312-byte)
+<code>dmu_replay_record_t</code> headers, some followed by a payload (WRITE,
+OBJECT, SPILL, and the BEGIN nvlist; FREE and friends are header-only). The record
+types at the pin (<code>zfs_ioctl.h:248</code>):</p>
+<div class="highlight"><pre><span></span><code>DRR_BEGIN          stream identity + feature flags (+ nvlist payload)
+DRR_OBJECT         dnode: type, blocksize, bonus, (raw: crypt params)
+DRR_FREEOBJECTS    range of freed object numbers
+DRR_WRITE          one logical block of data
+DRR_FREE           punched hole / freed range
+DRR_END            trailing checksum + toguid
+DRR_WRITE_BYREF    legacy dedup back-reference (no longer generated;
+                   convert old streams with zstream redup)
+DRR_SPILL          spill (SA overflow) block
+DRR_WRITE_EMBEDDED blkptr-embedded data (-e)
+DRR_OBJECT_RANGE   raw-send dnode-block crypt parameters
+DRR_REDACT         redacted (withheld) range
+</code></pre></div>
+<p>Every record except BEGIN carries a running fletcher4 checksum of the
+whole stream so far, filled in by the sender in
+<code>drr_u.drr_checksum.drr_checksum</code> (<code>dump_record()</code>,
+<code>module/zfs/dmu_send.c:263</code>) and verified by the receiver record by
+record (<code>receive_read_payload_and_next_header()</code>,
+<code>module/zfs/dmu_recv.c:2795</code>, <code>ECKSUM</code> on mismatch at
+<code>dmu_recv.c:2853</code>).</p>
+<h3 id="the-begin-record-is-the-contract">The BEGIN record is the contract<a class="headerlink" href="#the-begin-record-is-the-contract" title="Permanent link">&para;</a></h3>
+<p><code>struct drr_begin</code> (<code>zfs_ioctl.h:235</code>) carries the magic
+(<code>0x2F5bacbac</code>), <code>drr_toguid</code>/<code>drr_fromguid</code> (which snapshots this
+stream goes between), <code>drr_toname</code>, per-stream flags (<code>DRR_FLAG_CLONE</code>,
+<code>DRR_FLAG_FREERECORDS</code>, <code>DRR_FLAG_SPILL_BLOCK</code>; <code>zfs_ioctl.h:177</code>),
+and the packed <code>drr_versioninfo</code>:</p>
+<div class="highlight"><pre><span></span><code>64      56      48      40      32      24      16      8       0
++-------+-------+-------+-------+-------+-------+-------+-------+
+|reserve|                 feature-flags                     |C|S|
++-------+-------+-------+-------+-------+-------+-------+-------+
+  low 2 bits: header type, DMU_SUBSTREAM (0x1) or
+              DMU_COMPOUNDSTREAM (0x2)
+  bits 2..57: DMU_BACKUP_FEATURE_* flags
+</code></pre></div>
+<p>The feature flags say what the receiver <em>must understand</em> to replay
+the stream: <code>LARGE_BLOCKS (1&lt;&lt;19)</code>, <code>RESUMING (1&lt;&lt;20)</code>,
+<code>REDACTED (1&lt;&lt;21)</code>, <code>COMPRESSED (1&lt;&lt;22)</code>, <code>LARGE_DNODE (1&lt;&lt;23)</code>,
+<code>RAW (1&lt;&lt;24)</code>, <code>ZSTD (1&lt;&lt;25)</code>, <code>HOLDS (1&lt;&lt;26)</code>,
+<code>SWITCH_TO_LARGE_BLOCKS (1&lt;&lt;27)</code>, <code>LONGNAME (1&lt;&lt;28)</code>,
+<code>LARGE_MICROZAP (1&lt;&lt;29)</code>, plus the older <code>SA_SPILL</code>, <code>EMBED_DATA</code>,
+<code>LZ4</code>. <code>DMU_BACKUP_FEATURE_MASK</code> is the receiver's "what I understand"
+set; <code>DMU_STREAM_SUPPORTED(x)</code> is simply "no bits outside the mask".
+Note the mask deliberately excludes <code>DEDUP</code>/<code>DEDUPPROPS</code>: dedup
+streams can no longer be received directly and must be rewritten with
+<code>zstream redup</code>.</p>
+<p><code>zstream dump</code> (<code>cmd/zstream/zstream_dump.c</code>) decodes all of this from
+a stream on stdin; the BEGIN printout includes <code>hdrtype</code> and a raw hex
+<code>features = %llx</code> line (<code>zstream_dump.c:370</code>) - see the Observability
+section for how to decode it.</p>
+<p>One asymmetry worth internalizing: <code>SWITCH_TO_LARGE_BLOCKS</code> is defined
+and honored on receive, but the block comment at <code>zfs_ioctl.h:133</code>
+states "This flag is currently not set on any send streams." It exists
+as forward compatibility for a planned world where <code>-L</code> is the
+default. That comment is load-bearing for the case study below.</p>
+<hr />
+<h2 id="step-3-kernel-send-path-modulezfsdmu_sendc">Step 3 - Kernel Send Path: <code>module/zfs/dmu_send.c</code><a class="headerlink" href="#step-3-kernel-send-path-modulezfsdmu_sendc" title="Permanent link">&para;</a></h2>
+<p>Key anchors:</p>
+<ul>
+<li><code>dmu_send()</code> (<code>dmu_send.c:2748</code>) - by-name entry (<code>ZFS_IOC_SEND_NEW</code>)</li>
+<li><code>dmu_send_obj()</code> (<code>dmu_send.c:2658</code>) - by-objsetid entry (legacy)</li>
+<li><code>dmu_send_impl()</code> (<code>dmu_send.c:2363</code>)</li>
+<li><code>setup_featureflags()</code> (<code>dmu_send.c:1954</code>)</li>
+<li><code>create_begin_record()</code> (<code>dmu_send.c:2036</code>)</li>
+<li><code>do_dump()</code> (<code>dmu_send.c:883</code>)</li>
+<li><code>dump_record()</code> (<code>dmu_send.c:263</code>)</li>
+</ul>
+<p><code>dmu_send()</code> resolves names (including <code>#bookmark</code> incremental
+sources), owns the dataset when sending from a head dataset so it
+cannot change mid-send, fills a <code>struct dmu_send_params</code> with the
+boolean flags from the ioctl (<code>embedok</code>, <code>large_block_ok</code>,
+<code>compressok</code>, <code>rawok</code>, <code>savedok</code>, resume coordinates), and calls
+<code>dmu_send_impl()</code>. <code>dmu_send_obj()</code> does the same from objset ids and
+also loads the incremental source's ivset guid from the
+<code>DS_FIELD_IVSET_GUID</code> ZAP entry for raw sends (<code>dmu_send.c:2705</code>).</p>
+<h3 id="3a-setup_featureflags-where-flags-become-or-fail-to-become-stream-bits">3a - <code>setup_featureflags()</code>: where flags become (or fail to become) stream bits<a class="headerlink" href="#3a-setup_featureflags-where-flags-become-or-fail-to-become-stream-bits" title="Permanent link">&para;</a></h3>
+<p>This function (<code>dmu_send.c:1954</code>) is the single most important
+function in this chapter. It computes the BEGIN record's feature
+flags from <em>both</em> the send flags and the source dataset's state:</p>
+<ul>
+<li><code>SA_SPILL</code>: set for any ZPL dataset with <code>version &gt;= ZPL_VERSION_SA</code>
+  (<code>dmu_send.c:1960</code>).</li>
+<li><code>LARGE_BLOCKS</code>: set only if (<code>rawok || large_block_ok</code>) <strong>and</strong>
+  <code>dsl_dataset_feature_is_active(to_ds, SPA_FEATURE_LARGE_BLOCKS)</code>
+  (<code>dmu_send.c:1970</code>). The per-dataset feature is activated the first
+  time a block larger than <code>SPA_OLD_MAXBLOCKSIZE</code> (128K) is born on
+  that dataset (<code>dsl_dataset_block_born()</code>,
+  <code>module/zfs/dsl_dataset.c:139</code>, activation at <code>dsl_dataset.c:173</code>).
+  If the dataset never had a large block, <code>-L</code> changes nothing, and
+  there is no warning. The comment "raw sends imply large_block_ok"
+  (<code>dmu_send.c:1969</code>) means <code>-w</code> is subject to the same gate.</li>
+<li><code>EMBED_DATA</code>: (<code>embedok || rawok</code>) and the dataset is not encrypted
+  and the pool has <code>SPA_FEATURE_EMBEDDED_DATA</code> active
+  (<code>dmu_send.c:1976</code>).</li>
+<li><code>COMPRESSED</code>: <code>compressok || rawok</code> (<code>dmu_send.c:1982</code>).</li>
+<li><code>RAW</code>: <code>rawok</code> and the objset is actually encrypted
+  (<code>dmu_send.c:1985</code>) - <code>-w</code> on an unencrypted dataset degrades to a
+  compressed send.</li>
+<li><code>LZ4</code>, <code>ZSTD</code>: derived from the above plus pool/dataset feature
+  state (<code>dmu_send.c:1988</code>, <code>dmu_send.c:2000</code>).</li>
+<li><code>RESUMING</code>: nonzero resume object/offset (<code>dmu_send.c:2006</code>).</li>
+<li><code>REDACTED</code>: a redaction bookmark was given (<code>dmu_send.c:2010</code>).</li>
+<li><code>LARGE_DNODE</code>, <code>LONGNAME</code>: per-dataset feature active
+  (<code>dmu_send.c:2014</code>, <code>dmu_send.c:2018</code>).</li>
+<li><code>LARGE_MICROZAP</code>: per-dataset feature active, and this is the one
+  place the function can <em>fail</em>: a large microzap block can never be
+  split, so if <code>LARGE_BLOCKS</code> did not make it into the stream the send
+  aborts with <code>ZFS_ERR_STREAM_LARGE_MICROZAP</code> (<code>dmu_send.c:2027</code>),
+  which libzfs renders as "source snapshot contains large microzaps,
+  need -L (--large-block) or -w (--raw) to generate stream"
+  (<code>libzfs_sendrecv.c:2834</code>).</li>
+</ul>
+<p><code>create_begin_record()</code> (<code>dmu_send.c:2036</code>) then packs the flags with
+<code>DMU_SET_FEATUREFLAGS()</code> (<code>dmu_send.c:2053</code>), always sets
+<code>DRR_FLAG_SPILL_BLOCK</code> (<code>dmu_send.c:2061</code>), and sets
+<code>DRR_FLAG_FREERECORDS</code> per the <code>zfs_send_set_freerecords_bit</code> tunable.</p>
+<h3 id="3b-the-send-thread-pipeline">3b - The send thread pipeline<a class="headerlink" href="#3b-the-send-thread-pipeline" title="Permanent link">&para;</a></h3>
+<p>At the pin, a send is executed by a pipeline of kernel threads
+connected by size-capped blocking queues (<code>bqueue_t</code>). The large block
+comment above <code>dmu_send_impl()</code> (<code>dmu_send.c:2244</code>) diagrams all
+three configurations; the simple (non-redacted) case:</p>
+<pre class="mermaid"><code>flowchart LR
+    T["send_traverse_thread&lt;br/&gt;traverse_dataset_resume()&lt;br/&gt;finds changed blocks"] --&gt;|send_range| M
+    F["redact_list_thread&lt;br/&gt;(from bookmark; enqueues&lt;br/&gt;EOS only if no redaction)"] --&gt;|redact ranges| M
+    M["send_merge_thread&lt;br/&gt;merge + order check"] --&gt;|merged ranges| R
+    R["send_reader_thread&lt;br/&gt;issue_data_read()&lt;br/&gt;prefetch/read data"] --&gt;|ranges + data| MAIN
+    MAIN["main thread (dmu_send_impl)&lt;br/&gt;do_dump() -&gt; dump_record()&lt;br/&gt;-&gt; dso_outfunc (dump_bytes)"] --&gt; FD["fd"]
+
+    style T fill:#d7ecff,stroke:#333
+    style M fill:#fff4c2,stroke:#333
+    style R fill:#ffe8cc,stroke:#333
+    style MAIN fill:#d9f7d6,stroke:#333</code></pre>
+<ul>
+<li><code>setup_to_thread()</code> (<code>dmu_send.c:2078</code>) spawns
+  <code>send_traverse_thread()</code> (<code>dmu_send.c:1204</code>), which runs
+  <code>traverse_dataset_resume(to_ds, fromtxg, ...)</code> with <code>send_cb()</code>
+  (<code>dmu_send.c:1071</code>) enqueuing a <code>struct send_range</code> per block
+  changed since the incremental source's birth txg.</li>
+<li><code>setup_from_thread()</code> (<code>dmu_send.c:2099</code>) always spawns a
+  <code>redact_list_thread()</code> (<code>dmu_send.c:1294</code>) for the incremental
+  source's redaction list; with no redaction it immediately enqueues
+  an end-of-stream marker.</li>
+<li><code>send_merge_thread()</code> (<code>dmu_send.c:1489</code>) merges and order-checks.</li>
+<li><code>send_reader_thread()</code> (<code>dmu_send.c:1753</code>) issues the actual data
+  reads (<code>issue_data_read()</code>, <code>dmu_send.c:1589</code>) for ranges that will
+  really be sent - after redaction decisions, so nothing is read just
+  to be thrown away. Queue depths are bounded by
+  <code>zfs_send_queue_length</code> / <code>zfs_send_no_prefetch_queue_length</code>.</li>
+<li>The main thread loops <code>do_dump()</code> over dequeued ranges
+  (<code>dmu_send.c:2569</code>) and finishes with a <code>DRR_END</code> record carrying
+  the accumulated checksum (<code>dmu_send.c:2619</code>) - unless this is a
+  saved (<code>-S</code>) send, where END is deliberately omitted so the receiver
+  keeps its partial state.</li>
+</ul>
+<h3 id="3c-do_dump-record-emission">3c - <code>do_dump()</code> record emission<a class="headerlink" href="#3c-do_dump-record-emission" title="Permanent link">&para;</a></h3>
+<p><code>do_dump()</code> (<code>dmu_send.c:883</code>) dispatches on range type: OBJECT -&gt;
+<code>dump_dnode()</code> (<code>dmu_send.c:713</code>), HOLE -&gt; <code>dump_free()</code> /
+<code>dump_freeobjects()</code> (aggregated across calls via
+<code>dsc_pending_op</code>), REDACT -&gt; <code>dump_redact()</code>, OBJECT_RANGE (raw sends
+only) -&gt; <code>dump_object_range()</code>, DATA -&gt; embedded-capable blocks to
+<code>dump_write_embedded()</code> (<code>dmu_send.c:565</code>), spill blocks to
+<code>dump_spill()</code> (<code>dmu_send.c:605</code>), and plain data to
+<code>dmu_dump_write()</code> (<code>dmu_send.c:458</code>).</p>
+<p>The DATA case contains the physical half of the <code>-L</code> story
+(<code>dmu_send.c:983</code>): if the on-disk block is larger than
+<code>SPA_OLD_MAXBLOCKSIZE</code> but <code>DMU_BACKUP_FEATURE_LARGE_BLOCKS</code> did not
+make it into the stream, the block is <em>split</em> into 128K <code>DRR_WRITE</code>
+records in a loop. This is the compatibility default - and the reason
+the receiving dataset of a no-<code>-L</code> send ends up with 128K blocks
+regardless of the source's recordsize.</p>
+<p><code>dump_record()</code> (<code>dmu_send.c:263</code>) frames every record: fold the
+header into the running fletcher4, stamp the checksum (except in
+BEGIN), write the 312-byte header then the payload through
+<code>dso_outfunc</code>. A payload length must be a multiple of 8 unless the
+stream is raw (assert at <code>dmu_send.c:311</code>).</p>
+<p>Redaction, in one paragraph: a redacted send (<code>--redact bookmark</code>)
+adds a fifth thread (<code>setup_redact_list_thread()</code>, <code>dmu_send.c:2119</code>)
+feeding the merge thread ranges that must <em>not</em> be sent; matching
+blocks become <code>DRR_REDACT</code> records instead of data, and the receiving
+dataset records which snapshots it is redacted with respect to. The
+BEGIN payload nvlist carries the redaction snapshot guids
+(<code>BEGINNV_REDACT_SNAPS</code> / <code>BEGINNV_REDACT_FROM_SNAPS</code>,
+<code>dmu_send.c:2488</code>). Everything else in this chapter applies unchanged.</p>
+<hr />
+<h2 id="step-4-kernel-receive-path-modulezfsdmu_recvc">Step 4 - Kernel Receive Path: <code>module/zfs/dmu_recv.c</code><a class="headerlink" href="#step-4-kernel-receive-path-modulezfsdmu_recvc" title="Permanent link">&para;</a></h2>
+<p>Key anchors:</p>
+<ul>
+<li><code>dmu_recv_begin()</code> (<code>dmu_recv.c:1276</code>)</li>
+<li><code>dmu_recv_begin_check()</code> (<code>dmu_recv.c:621</code>)</li>
+<li><code>recv_begin_check_existing_impl()</code> (<code>dmu_recv.c:362</code>)</li>
+<li><code>recv_begin_check_feature_flags_impl()</code> (<code>dmu_recv.c:562</code>)</li>
+<li><code>recv_check_large_blocks()</code> (<code>dmu_recv.c:353</code>)</li>
+<li><code>dmu_recv_begin_sync()</code> (<code>dmu_recv.c:838</code>)</li>
+<li><code>dmu_recv_stream()</code> (<code>dmu_recv.c:3344</code>)</li>
+<li><code>receive_writer_thread()</code> (<code>dmu_recv.c:3252</code>)</li>
+<li><code>dmu_recv_end()</code> (<code>dmu_recv.c:3836</code>)</li>
+</ul>
+<h3 id="4a-dmu_recv_begin-and-the-check-gauntlet">4a - <code>dmu_recv_begin()</code> and the check gauntlet<a class="headerlink" href="#4a-dmu_recv_begin-and-the-check-gauntlet" title="Permanent link">&para;</a></h3>
+<p><code>dmu_recv_begin()</code> validates the magic (byteswapping the whole record
+if the stream came from an opposite-endian host, <code>dmu_recv.c:1299</code>),
+extracts the feature flags into <code>drc_featureflags</code>
+(<code>dmu_recv.c:1315</code>), reads the BEGIN payload nvlist, and dispatches a
+DSL sync task: <code>dmu_recv_begin_check</code> + <code>dmu_recv_begin_sync</code>
+(<code>dmu_recv.c:1392</code>), or the <code>dmu_recv_resume_begin_*</code> pair when
+<code>DMU_BACKUP_FEATURE_RESUMING</code> is set (<code>dmu_recv.c:1369</code>).</p>
+<p><code>dmu_recv_begin_check()</code> (<code>dmu_recv.c:621</code>) is the gauntlet:</p>
+<ol>
+<li><code>recv_begin_check_feature_flags_impl()</code> (<code>dmu_recv.c:562</code>):</li>
+<li>unknown bits (<code>!DMU_STREAM_SUPPORTED</code>) -&gt;
+     <code>ZFS_ERR_UNKNOWN_SEND_STREAM_FEATURE</code> (<code>dmu_recv.c:568</code>)</li>
+<li>each known stream feature requires the corresponding pool
+     feature to be <em>enabled</em>: LZ4, ZSTD, EMBED_DATA, LARGE_BLOCKS,
+     LARGE_DNODE, LARGE_MICROZAP, REDACTED, LONGNAME each return
+     <code>ENOTSUP</code> if missing (<code>dmu_recv.c:583</code> onward). The comment
+     explains why: the receiver never decompresses / un-embeds /
+     splits blocks on the way in.</li>
+<li>Raw-stream shape checks: raw requires <code>SPA_FEATURE_ENCRYPTION</code>,
+   raw+embedded is <code>EINVAL</code>, and raw requires <code>DRR_FLAG_SPILL_BLOCK</code>
+   in the stream, else <code>ZFS_ERR_SPILL_BLOCK_FLAG_MISSING</code>
+   (<code>dmu_recv.c:653</code>).</li>
+<li>If the target fs exists: <code>recv_begin_check_existing_impl()</code>
+   (<code>dmu_recv.c:362</code>) -</li>
+<li>no leftover <code>%recv</code> clone and no resume state (<code>EBUSY</code>)</li>
+<li>target snapshot name must not exist (<code>EEXIST</code>,
+     <code>dmu_recv.c:393</code>)</li>
+<li>for incrementals (<code>fromguid != 0</code>): walk the snapshot chain to
+     find the snapshot matching <code>drr_fromguid</code>; not found -&gt;
+     <code>ENODEV</code> (<code>dmu_recv.c:478</code>), which libzfs renders as "most
+     recent snapshot of ... does not match incremental source"</li>
+<li>without <code>-F</code>: <code>dsl_dataset_modified_since_snap()</code> -&gt; <code>ETXTBSY</code>
+     (<code>dmu_recv.c:492</code>), rendered as "destination ... has been
+     modified since most recent snapshot"; raw incrementals also
+     demand the from-snap be the latest snapshot (no "noop" snapshots
+     in between) for ivset checking to work</li>
+<li><code>recv_check_large_blocks(snap, featureflags)</code>
+     (<code>dmu_recv.c:510</code>): if the matched from-snapshot has the
+     per-dataset <code>large_blocks</code> feature active but the stream lacks
+     <code>DMU_BACKUP_FEATURE_LARGE_BLOCKS</code>, fail with
+     <code>ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH</code> (<code>dmu_recv.c:357</code>). This
+     is the receiving half of the case study.</li>
+<li>If the target fs does not exist: must be a full stream or a clone
+   (<code>ENOENT</code> otherwise), parent must exist and be a filesystem
+   (<code>ZFS_ERR_WRONG_PARENT</code>), encryption creation rules are checked,
+   and a clone origin, if given, gets the same redaction and
+   large-block checks (<code>dmu_recv.c:821</code>).</li>
+</ol>
+<h3 id="4b-dmu_recv_begin_sync-the-landing-zone">4b - <code>dmu_recv_begin_sync()</code>: the landing zone<a class="headerlink" href="#4b-dmu_recv_begin_sync-the-landing-zone" title="Permanent link">&para;</a></h3>
+<p>The sync half (<code>dmu_recv.c:838</code>) creates where the data will land:
+for an existing fs, a hidden temporary clone named <code>%recv</code>
+(<code>recv_clone_name</code>) of the from-snapshot (<code>dmu_recv.c:891</code>); for a
+new fs, the dataset itself, flagged <code>DS_FLAG_INCONSISTENT</code>
+(<code>dmu_recv.c:1001</code>) so it is unusable until the receive completes.
+Resumable receives get their bookkeeping ZAP entries created here
+(<code>DS_FIELD_RESUME_*</code>, <code>dmu_recv.c:934</code>; see Step 5).</p>
+<p>Then comes a block worth reading closely (<code>dmu_recv.c:1003</code>): if the
+stream carries <code>DMU_BACKUP_FEATURE_LARGE_BLOCKS</code>, the new dataset
+<em>activates</em> the per-dataset <code>large_blocks</code> feature immediately -
+whether or not any large block ever arrives:</p>
+<div class="highlight"><pre><span></span><code><span class="cm">/*</span>
+<span class="cm"> * When receiving, we refuse to accept streams that are missing the</span>
+<span class="cm"> * large block feature flag if the large block is already active</span>
+<span class="cm"> * (see ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH). To prevent this</span>
+<span class="cm"> * check from being spuriously triggered, we always activate</span>
+<span class="cm"> * the large block feature if the feature flag is present in the</span>
+<span class="cm"> * stream.  This covers the case where the sending side has the feature</span>
+<span class="cm"> * active, but has since deleted the file containing large blocks.</span>
+<span class="cm"> */</span>
+</code></pre></div>
+<p>(<code>dmu_recv.c:1003-1017</code>; the same pattern follows for LONGNAME at
+<code>dmu_recv.c:1022</code> and LARGE_MICROZAP at <code>dmu_recv.c:1029</code>.) This is
+the receive-side fix from upstream PR #18105, present at the pin - it
+matters in the case study.</p>
+<h3 id="4c-dmu_recv_stream-reader-writer">4c - <code>dmu_recv_stream()</code>: reader + writer<a class="headerlink" href="#4c-dmu_recv_stream-reader-writer" title="Permanent link">&para;</a></h3>
+<p><code>dmu_recv_stream()</code> (<code>dmu_recv.c:3344</code>) mirrors the send pipeline in
+miniature: the calling thread reads records off the fd and a single
+<code>receive_writer_thread()</code> (<code>dmu_recv.c:3252</code>) applies them.</p>
+<p>The reader loop (<code>dmu_recv.c:3465</code>) calls <code>receive_read_record()</code>
+(<code>dmu_recv.c:2895</code>), which reads each header+payload
+(<code>receive_read()</code>, <code>dmu_recv.c:1588</code> - a short read here becomes
+<code>ZFS_ERR_STREAM_TRUNCATED</code> at <code>dmu_recv.c:1610</code>), verifies the
+per-record fletcher4 (<code>ECKSUM</code> at <code>dmu_recv.c:2853</code>), issues indirect
+block prefetches, and enqueues onto <code>rwa-&gt;q</code>.</p>
+<p>For raw streams, the reader first applies the <code>crypt_keydata</code> nvlist
+from the BEGIN payload via <code>dsl_crypto_recv_raw()</code>
+(<code>dmu_recv.c:3387</code>; new datasets get the key immediately, existing
+ones stash <code>drc_keynvl</code> for <code>dmu_recv_end</code>), and captures
+<code>to_ivset_guid</code> (<code>dmu_recv.c:3395</code>).</p>
+<p>The writer thread dispatches per record type in
+<code>receive_process_record()</code> (<code>dmu_recv.c:3124</code>):</p>
+<ul>
+<li><code>receive_object()</code> (<code>dmu_recv.c:1913</code>) validates dnode parameters
+  against pool limits, and for existing objects defers to
+  <code>receive_handle_existing_object()</code> (<code>dmu_recv.c:1702</code>). That
+  function encodes the blocksize-change rules: a mismatched block
+  size means either "object was reallocated on the source" (free the
+  contents and restructure) or "previous receive split large blocks
+  and this stream does not" (keep the smaller local blocksize and
+  contents). Distinguishing the two uses the ZPL generation number
+  (<code>receive_object_is_same_generation()</code>, <code>dmu_recv.c:1674</code>) - and
+  the code comments there lean directly on
+  <code>recv_check_large_blocks()</code> having already excluded the dangerous
+  "-L to no-L" direction (<code>dmu_recv.c:1802</code>, <code>dmu_recv.c:1820</code>).</li>
+<li><code>DRR_WRITE</code> records are not applied one at a time:
+  <code>receive_process_write_record()</code> (<code>dmu_recv.c:2417</code>) requires
+  records in (object, offset) order (<code>EINVAL</code> otherwise,
+  <code>dmu_recv.c:2480</code>), accumulates a batch per object bounded by
+  <code>zfs_recv_write_batch_size</code>, and <code>flush_write_batch_impl()</code>
+  (<code>dmu_recv.c:2238</code>) applies the batch in one tx using
+  "lightweight" writes (<code>dmu_lightweight_write_by_dnode()</code>,
+  <code>dmu_recv.c:2368</code>) that carry compressed/raw payloads straight into
+  the ZIO pipeline. Here lives the other half of the large-block
+  logic (<code>dmu_recv.c:2273</code>): a WRITE record <em>larger</em> than the
+  object's block size (the legal no-L -&gt; -L direction) is
+  decompressed if necessary and written with a plain <code>dmu_write()</code> so
+  the DMU splits it along the existing 128K structure.</li>
+<li><code>receive_write_embedded()</code> (<code>dmu_recv.c:2513</code>),
+  <code>receive_spill()</code> (<code>dmu_recv.c:2557</code>), <code>receive_free()</code>
+  (<code>dmu_recv.c:2657</code>), <code>receive_freeobjects()</code> (<code>dmu_recv.c:2198</code>),
+  <code>receive_object_range()</code> (<code>dmu_recv.c:2678</code>, raw dnode-block crypt
+  params) handle the rest.</li>
+<li>After each applied write, <code>save_resume_state()</code> (<code>dmu_recv.c:1637</code>)
+  records (object, offset, bytes) into the dataset's in-core resume
+  state, which the dataset sync path persists into the
+  <code>DS_FIELD_RESUME_*</code> ZAP entries every txg.</li>
+</ul>
+<h3 id="4d-dmu_recv_end-one-atomic-rename">4d - <code>dmu_recv_end()</code>: one atomic rename<a class="headerlink" href="#4d-dmu_recv_end-one-atomic-rename" title="Permanent link">&para;</a></h3>
+<p><code>dmu_recv_end()</code> (<code>dmu_recv.c:3836</code>) runs the final sync task
+(<code>dmu_recv_end_check</code> at <code>dmu_recv.c:3574</code> / <code>dmu_recv_end_sync</code> at
+<code>dmu_recv.c:3653</code>). For an existing fs: with <code>-F</code>, destroy any
+snapshots created after the incremental origin (<code>dmu_recv.c:3675</code>);
+apply a stashed raw key if any; then
+<code>dsl_dataset_clone_swap_sync_impl()</code> (<code>dmu_recv.c:3705</code>) swaps the
+<code>%recv</code> clone's contents with the head dataset,
+<code>dsl_dataset_snapshot_sync_impl()</code> creates the target snapshot, its
+guid and creation time are overwritten with the stream's
+<code>drr_toguid</code>/<code>drr_creation_time</code> (<code>dmu_recv.c:3717</code>) so future
+incrementals can match it, the <code>DS_FLAG_INCONSISTENT</code> flags are
+cleared, and the clone is destroyed. For a new fs the dataset is
+snapshotted in place and its resume ZAP entries removed
+(<code>dmu_recv.c:3753</code>). Raw receives stamp the snapshot's
+<code>DS_FIELD_IVSET_GUID</code> from the stream's <code>to_ivset_guid</code>
+(<code>dmu_recv.c:3783</code>).</p>
+<p>Until <code>dmu_recv_end_sync</code> commits, nothing the stream wrote is
+visible; a crash or error leaves either nothing (non-resumable
+receives clean up via <code>dmu_recv_cleanup_ds()</code>) or a hidden
+inconsistent dataset plus a resume token.</p>
+<hr />
+<h2 id="case-study-the-l-deadlock">Case Study - The -L Deadlock<a class="headerlink" href="#case-study-the-l-deadlock" title="Permanent link">&para;</a></h2>
+<p>This section walks a real, current bug family end to end, because it
+exercises every mechanism above: send-side feature gating, the stream
+contract, and the receive-side gauntlet - and because its error
+message actively points the wrong way.</p>
+<h3 id="the-2020-root-why-the-check-exists-at-all">The 2020 root: why the check exists at all<a class="headerlink" href="#the-2020-root-why-the-check-exists-at-all" title="Permanent link">&para;</a></h3>
+<p>Commit <code>7bcb7f084</code> (Matthew Ahrens, June 2020, "File incorrectly
+zeroed when receiving incremental stream that toggles -L") documents
+the original data-loss bug: receiving an incremental where the <code>-L</code>
+flag was <em>toggled</em> relative to the previous receive could silently
+zero file contents. The commit made three decisions that still shape
+the pin:</p>
+<ol>
+<li>"-L to no-L" incrementals are rejected -
+   <code>recv_check_large_blocks()</code> (<code>dmu_recv.c:353</code>) fails with
+   <code>ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH</code> when the destination has
+   <code>large_blocks</code> active but the stream lacks the flag. libzfs prints:
+   "incremental send stream requires -L (--large-block), to match
+   previous receive." (<code>libzfs_sendrecv.c:5232</code>).</li>
+<li>"no-L to -L" is handled correctly (the
+   <code>receive_handle_existing_object()</code> generation-number logic and the
+   oversized-WRITE split in <code>flush_write_batch_impl()</code>,
+   <code>dmu_recv.c:2273</code>).</li>
+<li><code>DMU_BACKUP_FEATURE_SWITCH_TO_LARGE_BLOCKS</code> was defined for a
+   future where <code>-L</code> is default - and, per <code>zfs_ioctl.h:142</code>, is still
+   set on no stream at the pin.</li>
+</ol>
+<h3 id="the-deadlock-scenario">The deadlock scenario<a class="headerlink" href="#the-deadlock-scenario" title="Permanent link">&para;</a></h3>
+<p>Now run a bidirectional replication, the kind every
+backup-and-restore or failover setup performs:</p>
+<div class="highlight"><pre><span></span><code> host A: tank/fs   recordsize=1M, has &gt;128K blocks
+         =&gt; per-dataset large_blocks ACTIVE
+            (dsl_dataset_block_born(), dsl_dataset.c:173)
+
+ step 1: A sends full stream WITHOUT -L
+         setup_featureflags(): large_block_ok == B_FALSE
+           -&gt; no LARGE_BLOCKS stream bit     (dmu_send.c:1970)
+         do_dump(): 1M blocks split into 128K DRR_WRITEs
+                                             (dmu_send.c:983)
+
+ host B: receives. Stream has no LARGE_BLOCKS bit, so the
+         activation block at dmu_recv.c:1012 does NOT run.
+         B's copy: 128K blocks only, large_blocks never active.
+
+ step 2: roles reverse (failover). B takes writes, snapshots.
+
+ step 3: B sends incremental back to A, and the operator,
+         reading the manpage, passes -L this time:
+           zfs send -L -i @s1 tank/fs@s2 | ssh A zfs recv ...
+
+         B's setup_featureflags():
+           dspp-&gt;large_block_ok == B_TRUE     (user asked)
+           dsl_dataset_feature_is_active(to_ds,
+               SPA_FEATURE_LARGE_BLOCKS) == B_FALSE
+           -&gt; LARGE_BLOCKS bit NOT set. Silently. (dmu_send.c:1970)
+
+         A's dmu_recv_begin_check():
+           recv_begin_check_existing_impl() matches @s1,
+           recv_check_large_blocks(snap, featureflags)
+                                              (dmu_recv.c:510)
+           snap has large_blocks ACTIVE (it always did on A),
+           stream lacks the bit
+           -&gt; ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH
+
+ zfs recv prints:
+   "incremental send stream requires -L (--large-block),
+    to match previous receive."
+
+ ...but -L WAS passed. There is no flag the operator can add on
+ either side to make this incremental work. That is the deadlock.
+</code></pre></div>
+<p>The failure is a pure contract violation: the sender's gate
+(<code>dmu_send.c:1970</code>) keys on <em>its own dataset's</em> feature state, the
+receiver's gate (<code>dmu_recv.c:353</code>) keys on <em>its</em> dataset's feature
+state, and after one asymmetric replication the two states disagree
+permanently. The error text blames the flag, but the flag never had a
+chance.</p>
+<h3 id="upstream-state-at-the-pin">Upstream state at the pin<a class="headerlink" href="#upstream-state-at-the-pin" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Issue openzfs/zfs#18101 (Jan 2026) reported the adjacent variant:
+  source has <code>large_blocks</code> <em>active but empty</em> (the large files were
+  deleted), destination copy never activated it, and the reversed
+  incremental hits the same mismatch. Its fix, PR #18105 (commit
+  <code>794f1587d</code>, "When receiving a stream with the large block flag,
+  activate feature", Jan 2026), is the receive-side activation block
+  you saw at <code>dmu_recv.c:1012</code>: any stream that <em>carries</em> the flag now
+  activates the feature on the receiving dataset, so round-trips of
+  flag-carrying streams stay symmetric. That commit is an ancestor of
+  the pinned revision.</li>
+<li>Issue openzfs/zfs#18908 (Aug 2026) is the send-side half - the
+  scenario traced above, where the forward stream never carried the
+  flag because <code>-L</code> was silently dropped by <code>setup_featureflags()</code>.
+  It is still open at the time of writing; the recv-side activation
+  cannot help because there is no flag in the stream to react to.</li>
+<li>Workarounds today: re-seed with a full <code>zfs send -L</code> (or <code>-w</code>) so
+  the copy activates the feature via the PR #18105 path, or write one<blockquote>
+<p>128K block on the reversed source before snapshotting to activate
+  the feature the organic way.</p>
+</blockquote>
+</li>
+</ul>
+<p>The debugging lesson generalizes: when a receive rejects a stream,
+run <code>zstream dump</code> on the actual stream and compare the BEGIN
+<code>features</code> word against what the receiver requires. The stream is the
+contract; both CLIs' flags are just requests.</p>
+<hr />
+<h2 id="step-5-resumable-receive-and-resume-tokens">Step 5 - Resumable Receive and Resume Tokens<a class="headerlink" href="#step-5-resumable-receive-and-resume-tokens" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>module/zfs/dmu_recv.c</code>, <code>module/zfs/dsl_dataset.c</code></li>
+<li><code>include/sys/dsl_dataset.h</code></li>
+<li><code>lib/libzfs/libzfs_sendrecv.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>DS_FIELD_RESUME_*</code> ZAP names (<code>include/sys/dsl_dataset.h:103</code>)</li>
+<li>token generation: <code>get_receive_resume_token_impl()</code>
+  (<code>module/zfs/dsl_dataset.c:2383</code>)</li>
+<li>token decode: <code>zfs_send_resume_token_to_nvlist()</code>
+  (<code>libzfs_sendrecv.c:1522</code>)</li>
+<li>resume send: <code>zfs_send_resume_impl_cb_impl()</code>
+  (<code>libzfs_sendrecv.c:1819</code>)</li>
+<li>resume recv checks: <code>dmu_recv_resume_begin_check()</code>
+  (<code>dmu_recv.c:1071</code>), <code>resume_check()</code> (<code>dmu_recv.c:3306</code>)</li>
+</ul>
+<p>With <code>zfs recv -s</code>, <code>dmu_recv_begin_sync()</code> zapifies the landing
+dataset and seeds <code>DS_FIELD_RESUME_{FROMGUID,TOGUID,TONAME,OBJECT,
+OFFSET,BYTES}</code> plus flag markers (<code>...LARGEBLOCK</code>, <code>...EMBEDOK</code>,
+<code>...COMPRESSOK</code>, <code>...RAWOK</code>) (<code>dmu_recv.c:934</code>). As records are
+applied, <code>save_resume_state()</code> keeps (object, offset, bytes) current.
+If the receive dies, the dataset stays inconsistent and the
+<code>receive_resume_token</code> property materializes: <code>get_receive_resume_token()</code>
+(<code>dsl_dataset.c:2504</code>, checking the dataset itself and then its
+<code>%recv</code> child) packs those ZAP fields into an nvlist, gzip-compresses
+it, and renders <code>&lt;version&gt;-&lt;fletcher4&gt;-&lt;len&gt;-&lt;hex&gt;</code> (the
+<code>kmem_asprintf()</code> at <code>dsl_dataset.c:2489</code>).</p>
+<p><code>zfs send -t &lt;token&gt;</code> reverses this entirely in userland:
+<code>zfs_send_resume_token_to_nvlist()</code> unpacks the token, and
+<code>zfs_send_resume_impl_cb_impl()</code> resolves <code>toname</code>/<code>toguid</code> back to a
+live snapshot (tolerating renames via <code>guid_to_name()</code>), then calls
+<code>lzc_send_resume_redacted()</code> with <code>resume_object</code>/<code>resume_offset</code>.
+Note the lzc flags are the <em>union</em> of command-line flags and the
+token's saved flags (<code>libzfs_sendrecv.c:1916</code>) - the stream shape is
+pinned by the original send, not by what you type at resume time.</p>
+<p>In the kernel, the resuming send seeds every pipeline thread's start
+bookmark via <code>setup_resume_points()</code> (<code>dmu_send.c:2175</code>) and adds
+<code>resume_object</code>/<code>resume_offset</code> to the BEGIN payload. On the receive
+side, <code>dmu_recv_resume_begin_check()</code> re-verifies toguid/fromguid
+against the saved ZAP state (<code>EINVAL</code> on mismatch, <code>dmu_recv.c:1144</code>;
+resuming a full receive over an existing <code>%recv</code> without <code>-F</code> is
+<code>ZFS_ERR_RESUME_EXISTS</code>, <code>dmu_recv.c:1127</code>), re-runs the feature and
+large-block checks (<code>dmu_recv.c:1219</code>), and <code>resume_check()</code>
+(<code>dmu_recv.c:3306</code>) confirms the stream's resume point equals the
+saved one. <code>zfs recv -A</code> aborts and reclaims a suspended receive.</p>
+<p>Related but distinct: a <em>saved</em> send (<code>zfs send -S</code>, <code>savedok</code>) sends
+the partially received state itself onward - it omits the DRR_END
+record on purpose (<code>dmu_send.c:2614</code>) so the destination also ends up
+resumable.</p>
+<hr />
+<h2 id="step-6-raw-sends-brief">Step 6 - Raw Sends (Brief)<a class="headerlink" href="#step-6-raw-sends-brief" title="Permanent link">&para;</a></h2>
+<p>For encrypted datasets, <code>zfs send -w</code> changes the contract rather
+than the machinery:</p>
+<ul>
+<li>No decryption: the traversal runs with <code>TRAVERSE_NO_DECRYPT</code>
+  (<code>setup_to_thread()</code>, <code>dmu_send.c:2090</code>); <code>DRR_WRITE</code> payloads are
+  ciphertext with salt/IV/MAC carried in the record, and dnode blocks
+  get <code>DRR_OBJECT_RANGE</code> records with their crypt parameters
+  (<code>do_dump()</code>, <code>dmu_send.c:896</code>).</li>
+<li>The BEGIN payload carries <code>crypt_keydata</code> - the wrapped key and
+  objset crypt parameters from <code>dsl_crypto_populate_key_nvlist()</code>
+  (<code>module/zfs/dsl_crypt.c:2417</code>) - so the receiver can store the key
+  without ever seeing plaintext.</li>
+<li>ivset guids police incremental continuity: each snapshot of an
+  encrypted dataset records an IV-set guid (<code>DS_FIELD_IVSET_GUID</code>,
+  <code>dsl_dataset.h:130</code>). On receive,
+  <code>dsl_crypto_recv_raw_objset_check()</code> compares the stream's
+  <code>from_ivset_guid</code> with the destination's from-snapshot:
+  missing -&gt; <code>ZFS_ERR_FROM_IVSET_GUID_MISSING</code>, different -&gt;
+  <code>ZFS_ERR_FROM_IVSET_GUID_MISMATCH</code> (<code>dsl_crypt.c:2073</code>), tunable
+  escape hatch <code>zfs_disable_ivset_guid_check</code> (<code>dsl_crypt.c:81</code>).
+  This is what rejects a raw incremental whose source chain was
+  broken (e.g. by a non-raw receive or an intermediate snapshot
+  mismatch).</li>
+<li>Structure becomes contract: <code>receive_handle_existing_object()</code>
+  enforces matching indirect block size, nlevels, and dnode slots for
+  raw receives (<code>dmu_recv.c:1852</code>), because the receiver cannot
+  re-shape ciphertext.</li>
+<li>Raw implies large-block-ok and compress-ok on the send side, and
+  <code>DMU_BACKUP_FEATURE_RAW</code> is set only if the objset is actually
+  encrypted (<code>dmu_send.c:1985</code>). Raw and embedded data are mutually
+  exclusive (<code>dmu_recv.c:659</code>).</li>
+</ul>
+<hr />
+<h2 id="observability-for-debugging">Observability for Debugging<a class="headerlink" href="#observability-for-debugging" title="Permanent link">&para;</a></h2>
+<h3 id="zstream-dump-read-the-contract">zstream dump: read the contract<a class="headerlink" href="#zstream-dump-read-the-contract" title="Permanent link">&para;</a></h3>
+<p><code>zstream dump</code> (<code>cmd/zstream/zstream.c</code>) prints every record; the
+BEGIN block shows the raw contract:</p>
+<div class="highlight"><pre><span></span><code>BEGIN record
+        hdrtype = 1
+        features = 2430004
+        magic = 2f5bacbac
+        ...
+        toguid = c9cf49b5a34a3fbe
+        fromguid = 0
+</code></pre></div>
+<p><code>features</code> is plain hex of the <code>DMU_BACKUP_FEATURE_*</code> bits
+(<code>zstream_dump.c:370</code>). Decode it against <code>zfs_ioctl.h:118</code>: e.g.
+<code>0x2430004</code> = <code>SA_SPILL (1&lt;&lt;2) | EMBED_DATA (1&lt;&lt;16) | LZ4 (1&lt;&lt;17) |
+COMPRESSED (1&lt;&lt;22) | ZSTD (1&lt;&lt;25)</code>. When debugging a rejected stream,
+the first question is always "is bit 19 (<code>LARGE_BLOCKS</code>, 0x80000)
+set" - checked here, not in either CLI's flags. <code>zstream token
+&lt;token&gt;</code> prints a resume token's nvlist without needing the sending
+dataset.</p>
+<h3 id="zfs-send-nvp">zfs send -nvP<a class="headerlink" href="#zfs-send-nvp" title="Permanent link">&para;</a></h3>
+<p>Dry-run estimates go through <code>ZFS_IOC_SEND_SPACE</code> -&gt;
+<code>dmu_send_estimate_fast()</code> and print <code>full</code>/<code>incremental</code> lines plus
+"total estimated size" (<code>send_print_verbose()</code>,
+<code>libzfs_sendrecv.c:1079</code>). A running send can be observed via
+<code>ZFS_IOC_SEND_PROGRESS</code> (<code>zfs_ioc_send_progress()</code>,
+<code>zfs_ioctl.c:6022</code>), polled by libzfs's <code>send_progress_thread</code> -
+that is what the periodic <code>-v</code> progress lines and <code>-V</code> proctitle use.</p>
+<h3 id="receive-side-error-mapping">Receive-side error mapping<a class="headerlink" href="#receive-side-error-mapping" title="Permanent link">&para;</a></h3>
+<p>The kernel returns errnos and <code>ZFS_ERR_*</code> codes
+(<code>include/sys/fs/zfs.h:1660</code>); the strings you actually see come from
+the <code>switch (ioctl_errno)</code> in <code>zfs_receive_one()</code>
+(<code>libzfs_sendrecv.c:5160</code>). The "requires -L" text lives at
+<code>libzfs_sendrecv.c:5232</code>. Two mappings actively mislead:</p>
+<ul>
+<li><code>ZFS_ERR_UNKNOWN_SEND_STREAM_FEATURE</code> falls through to
+  <code>zfs_standard_error_fmt()</code> (<code>lib/libzfs/libzfs_util.c:494</code>), where
+  it shares a case with <code>ZFS_ERR_IOC_CMD_UNAVAIL</code> and prints "the
+  loaded zfs module does not support this operation. A reboot may be
+  required..." - the real meaning is "this stream has feature bits
+  this kernel has never heard of". (Userland usually catches it first
+  with the clearer "stream has unsupported feature, feature flags =
+  %llx" at <code>libzfs_sendrecv.c:5531</code>, which triggers only when the
+  <em>userland</em> mask is also too old.)</li>
+<li>A resume-point/toguid mismatch surfaces as <code>EINVAL</code>, which for
+  resumable receives prints "kernel modules must be upgraded to
+  receive this stream." (<code>libzfs_sendrecv.c:5215</code>).</li>
+</ul>
+<p>On interruption, <code>recv_ecksum_set_aux()</code> (<code>libzfs_sendrecv.c:4149</code>)
+prints the resume token and the exact <code>zfs send -t &lt;token&gt;</code> command.</p>
+<h3 id="kernel-side-breadcrumbs">Kernel-side breadcrumbs<a class="headerlink" href="#kernel-side-breadcrumbs" title="Permanent link">&para;</a></h3>
+<p><code>dmu_send.c</code>/<code>dmu_recv.c</code> do not narrate to <code>zfs_dbgmsg</code> the way the
+import path does. What you get instead: <code>zpool history -i</code> internal
+events - <code>dmu_recv_begin_sync()</code> logs <code>receive</code>
+(<code>dmu_recv.c:1067</code>), resume logs <code>resume receive</code> (<code>dmu_recv.c:1268</code>),
+and <code>dmu_recv_end_sync()</code> logs <code>finish receiving</code>
+(<code>dmu_recv.c:3660</code>) - plus per-record <code>dprintf</code> tracing
+(<code>dprintf_drr()</code>, <code>dmu_recv.c:3012</code>) on debug builds. A receive that
+began but never finished is therefore visible as a <code>receive</code> history
+entry with no matching <code>finish receiving</code>, and as a <code>%recv</code> child or
+<code>inconsistent</code> dataset in <code>zfs list -t all</code> / <code>zdb -d</code>.</p>
+<hr />
+<h2 id="where-sendreceive-fails-in-practice">Where Send/Receive Fails in Practice<a class="headerlink" href="#where-sendreceive-fails-in-practice" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Producing site</th>
+<th>Code location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"incremental send stream requires -L (--large-block), to match previous receive"</td>
+<td><code>recv_check_large_blocks()</code>, <code>ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH</code>; may be the -L deadlock (case study) - check <code>zstream dump</code> features word</td>
+<td><code>dmu_recv.c:353</code> (called at <code>:510</code>, <code>:821</code>, <code>:1219</code>); string <code>libzfs_sendrecv.c:5232</code></td>
+</tr>
+<tr>
+<td>"stream has unsupported feature, feature flags = %llx" / "loaded zfs module does not support this operation"</td>
+<td>unknown feature bits; userland mask check, else kernel <code>ZFS_ERR_UNKNOWN_SEND_STREAM_FEATURE</code></td>
+<td><code>libzfs_sendrecv.c:5517</code>; <code>dmu_recv.c:568</code>; misleading mapping <code>libzfs_util.c:494</code></td>
+</tr>
+<tr>
+<td>"pool must be upgraded to receive this stream" (<code>ENOTSUP</code>)</td>
+<td>stream feature known but pool feature not enabled (LZ4/ZSTD/EMBED/LARGE_BLOCKS/LARGE_DNODE/...)</td>
+<td><code>recv_begin_check_feature_flags_impl()</code> (<code>dmu_recv.c:583</code>-<code>:615</code>)</td>
+</tr>
+<tr>
+<td>"IV set guid mismatch" / "IV set guid missing" (raw incremental)</td>
+<td>from-snapshot ivset continuity check</td>
+<td><code>dsl_crypto_recv_raw_objset_check()</code> (<code>dsl_crypt.c:2073</code>); strings <code>libzfs_sendrecv.c:5260</code></td>
+</tr>
+<tr>
+<td>"destination X has been modified since most recent snapshot" (<code>ETXTBSY</code>)</td>
+<td>writes on the target since the from-snapshot; <code>-F</code> rolls back instead</td>
+<td><code>recv_begin_check_existing_impl()</code> (<code>dmu_recv.c:492</code>); string <code>libzfs_sendrecv.c:5170</code></td>
+</tr>
+<tr>
+<td>"most recent snapshot of X does not match incremental source" (<code>ENODEV</code>)</td>
+<td><code>drr_fromguid</code> matches no snapshot in the target's chain</td>
+<td><code>dmu_recv.c:464</code>-<code>:479</code>; string <code>libzfs_sendrecv.c:5161</code></td>
+</tr>
+<tr>
+<td>"destination already exists" (<code>EEXIST</code>)</td>
+<td>target snapshot name already present</td>
+<td><code>dmu_recv.c:393</code>; string <code>libzfs_sendrecv.c:5195</code></td>
+</tr>
+<tr>
+<td>"checksum mismatch or incomplete stream ... zfs send -t <token>"</td>
+<td>per-record fletcher4 mismatch (<code>ECKSUM</code>) or short read (<code>ZFS_ERR_STREAM_TRUNCATED</code>)</td>
+<td><code>dmu_recv.c:2853</code>; <code>dmu_recv.c:1610</code>; token printout <code>libzfs_sendrecv.c:4149</code></td>
+</tr>
+<tr>
+<td>resume send fails <code>EINVAL</code>, "kernel modules must be upgraded" (misleading)</td>
+<td>resume token does not match saved <code>DS_FIELD_RESUME_*</code> state (toguid/fromguid/object/offset)</td>
+<td><code>dmu_recv_resume_begin_check()</code> (<code>dmu_recv.c:1144</code>); <code>resume_check()</code> (<code>dmu_recv.c:3306</code>); string <code>libzfs_sendrecv.c:5215</code></td>
+</tr>
+<tr>
+<td>"Resuming recv on existing dataset without force"</td>
+<td>resumed full receive collides with existing <code>%recv</code></td>
+<td><code>ZFS_ERR_RESUME_EXISTS</code> (<code>dmu_recv.c:1127</code>)</td>
+</tr>
+<tr>
+<td>"incompatible embedded data stream feature with encrypted receive" (<code>EINVAL</code>)</td>
+<td><code>-e</code> stream into an encryption context (raw+embed, or embed into to-be-encrypted child)</td>
+<td><code>dmu_recv.c:659</code>, <code>:741</code>, <code>:798</code>; string <code>libzfs_sendrecv.c:5211</code></td>
+</tr>
+<tr>
+<td>send fails: "source snapshot contains large microzaps, need -L (--large-block) or -w (--raw)"</td>
+<td>large microzap cannot be split; only send-side featureflags error</td>
+<td><code>setup_featureflags()</code> (<code>dmu_send.c:2027</code>); string <code>libzfs_sendrecv.c:2834</code></td>
+</tr>
+<tr>
+<td>"Spill block flag missing for raw send"</td>
+<td>raw stream from pre-SPILL_BLOCK sender</td>
+<td><code>dmu_recv.c:663</code>, <code>:1108</code>; string <code>libzfs_sendrecv.c:5275</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="end-to-end-flow-recap">End-to-End Flow Recap<a class="headerlink" href="#end-to-end-flow-recap" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>send:
+zfs send [-Lwec] tank/fs@b
+  -&gt; zfs_do_send()                        (cmd/zfs/zfs_main.c:4730)
+    -&gt; zfs_send_one()                     (libzfs_sendrecv.c:2863)
+      -&gt; lzc_send_redacted()              (libzfs_core.c:819)
+        -&gt; ZFS_IOC_SEND_NEW               ("largeblockok" etc. nvlist)
+          -&gt; zfs_ioc_send_new()           (zfs_ioctl.c:6947)
+            -&gt; dmu_send()                 (dmu_send.c:2748)
+              -&gt; dmu_send_impl()          (dmu_send.c:2363)
+                -&gt; setup_featureflags()   (flags + dataset state -&gt; bits)
+                -&gt; create_begin_record() + dump_record(BEGIN)
+                -&gt; traverse/merge/reader threads -&gt; do_dump() per range
+                -&gt; dump_record(...) -&gt; dump_bytes() -&gt; fd
+                -&gt; DRR_END (unless saved send)
+
+recv:
+zfs recv [-sF] tank2/fs
+  -&gt; zfs_do_receive()                     (cmd/zfs/zfs_main.c:5138)
+    -&gt; zfs_receive() -&gt; zfs_receive_impl() (BEGIN read in userland)
+      -&gt; zfs_receive_one()                (libzfs_sendrecv.c:4418)
+        -&gt; recv_impl()                    (ZFS_IOC_RECV_NEW or ZFS_IOC_RECV)
+          -&gt; zfs_ioc_recv_impl()          (zfs_ioctl.c:5302)
+            -&gt; dmu_recv_begin()           (check gauntlet, sync task,
+                                           %recv clone / new inconsistent ds)
+            -&gt; dmu_recv_stream()          (reader thread + receive_writer_thread,
+                                           batched lightweight writes)
+            -&gt; dmu_recv_end()             (atomic clone swap + snapshot,
+                                           guid/ctime stamped from stream)
+</code></pre></div>
+<hr />
+<h2 id="key-takeaways">Key Takeaways<a class="headerlink" href="#key-takeaways" title="Permanent link">&para;</a></h2>
+<ol>
+<li>The BEGIN record's feature-flag word is the entire compatibility
+   contract; both sides' CLI flags are only inputs to it. When
+   debugging, read the stream (<code>zstream dump</code>), not the commands.</li>
+<li>Send flags are requests: <code>setup_featureflags()</code> gates <code>-L</code> (and
+   others) on source dataset state and drops them silently. <code>-w</code>
+   implies <code>-L -c -e</code> but passes through the same gates.</li>
+<li>Without <code>-L</code> in the stream, large blocks are split into 128K
+   WRITE records at <code>do_dump()</code> - a lossless but <em>sticky</em> transform:
+   the copy's blocksize and feature state now differ from the
+   source's, which is how the -L deadlock is born.</li>
+<li>The receive gauntlet is two-layered: unknown stream bits fail
+   <code>DMU_STREAM_SUPPORTED</code>; known bits require the matching pool
+   feature enabled (<code>ENOTSUP</code>); dataset-state checks
+   (large-block match, fromguid chain, ivset guids) come after.</li>
+<li>Received data lands in a hidden <code>%recv</code> clone or an
+   <code>DS_FLAG_INCONSISTENT</code> dataset; <code>dmu_recv_end()</code>'s sync task is
+   the single atomic commit point, and it stamps the new snapshot's
+   guid from the stream so future incrementals can chain.</li>
+<li>Resume state is a handful of <code>DS_FIELD_RESUME_*</code> ZAP entries; the
+   token is just those entries gzip-compressed and hex-encoded, and
+   resume flags come from the token, not the resumed command line.</li>
+<li>Raw sends swap "trust the receiver to re-encode" for "ship exact
+   ciphertext + structure": ivset guids and dnode-shape checks are
+   the price, and their errors implicate the snapshot chain, not the
+   data.</li>
+<li>Several receive errors are mapped to misleading strings ("requires
+   -L" when -L was given, "kernel modules must be upgraded" for a
+   token mismatch); map the errno back to the producing site before
+   believing the text.</li>
+</ol>
+<hr />
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>-&gt; <a href="../07-pool-import/">Part 7 - Pool Import</a> covers how the receiving
+pool bootstrapped the feature state that this chapter's gauntlet
+checks against - <code>spa_ld_check_features()</code> is the import-time cousin
+of <code>recv_begin_check_feature_flags_impl()</code>.</p>
+<p>-&gt; <a href="../09-debugging-toolbox/">Part 9 - The Debugging Toolbox</a>: the
+tools for inspecting everything this chapter described - including
+<code>zstream dump</code> on the streams themselves and zdb on the datasets they
+produce.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../07-pool-import/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Part 7: Pool Import">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Part 7: Pool Import
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../09-debugging-toolbox/" class="md-footer__link md-footer__link--next" aria-label="Next: Part 9: The Debugging Toolbox">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Part 9: The Debugging Toolbox
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

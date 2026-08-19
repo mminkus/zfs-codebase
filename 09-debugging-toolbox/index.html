@@ -1,0 +1,2239 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A guided walkthrough for engineers who want to navigate, understand, and contribute to OpenZFS.">
+      
+      
+      
+        <link rel="canonical" href="https://mminkus.github.io/zfs-codebase/09-debugging-toolbox/">
+      
+      
+        <link rel="prev" href="../08-send-receive/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Part 9: The Debugging Toolbox - How to Read the OpenZFS Codebase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#part-9-the-debugging-toolbox" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-header__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            How to Read the OpenZFS Codebase
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Part 9: The Debugging Toolbox
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="How to Read the OpenZFS Codebase" class="md-nav__button md-logo" aria-label="How to Read the OpenZFS Codebase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    How to Read the OpenZFS Codebase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mminkus/zfs-codebase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mminkus/zfs-codebase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-architecture-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1: Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-repo-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 2: Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-io-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 3: The I/O Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-block-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 4: Block Pointers in Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 5: Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-contributing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 6: Contributing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-pool-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 7: Pool Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-send-receive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 8: Send and Receive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 9: The Debugging Toolbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-two-worlds-one-set-of-disks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Two Worlds, One Set of Disks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-libzpool-model-kernel-code-in-a-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The libzpool Model: Kernel Code in a Library
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The libzpool Model: Kernel Code in a Library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#consequence-1-userland-tools-read-the-disks-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 1 - Userland tools read the disks directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-2-the-import-is-in-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 2 - The import is in-process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-3-the-library-path-trap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 3 - The library-path trap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-4-the-superpower-userland-debugging-of-kernel-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 4 - The superpower: userland debugging of kernel logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-5-the-model-is-embeddable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 5 - The model is embeddable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-1-zdb-the-read-only-microscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 1 - zdb: The Read-Only Microscope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tool 1 - zdb: The Read-Only Microscope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flag-families-mapped-to-their-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flag families, mapped to their handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leak-detection-how-b-actually-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leak detection: how -b actually works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-2-zhack-writing-with-the-safety-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 2 - zhack: Writing With the Safety Off
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-3-zinject-fault-injection-inside-the-kernel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 3 - zinject: Fault Injection Inside the Kernel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-4-ztest-and-zloop-stress-in-a-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 4 - ztest and zloop: Stress in a Process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kernel-side-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel-Side Observability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kernel-Side Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs_dbgmsg-the-flight-recorder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs_dbgmsg: the flight recorder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kstats-counters-and-histories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kstats: counters and histories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zpool-events-history-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zpool events, history, status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux-static-tracepoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux static tracepoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#symptom-tool-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom -&gt; Tool Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-toolbox-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Toolbox at a Glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-chapter-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Chapter Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagram-1-two-worlds-one-set-of-disks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagram 1 - Two Worlds, One Set of Disks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-libzpool-model-kernel-code-in-a-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The libzpool Model: Kernel Code in a Library
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The libzpool Model: Kernel Code in a Library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#consequence-1-userland-tools-read-the-disks-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 1 - Userland tools read the disks directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-2-the-import-is-in-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 2 - The import is in-process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-3-the-library-path-trap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 3 - The library-path trap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-4-the-superpower-userland-debugging-of-kernel-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 4 - The superpower: userland debugging of kernel logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequence-5-the-model-is-embeddable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequence 5 - The model is embeddable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-1-zdb-the-read-only-microscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 1 - zdb: The Read-Only Microscope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tool 1 - zdb: The Read-Only Microscope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flag-families-mapped-to-their-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flag families, mapped to their handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leak-detection-how-b-actually-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leak detection: how -b actually works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-2-zhack-writing-with-the-safety-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 2 - zhack: Writing With the Safety Off
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-3-zinject-fault-injection-inside-the-kernel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 3 - zinject: Fault Injection Inside the Kernel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tool-4-ztest-and-zloop-stress-in-a-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool 4 - ztest and zloop: Stress in a Process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kernel-side-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel-Side Observability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kernel-Side Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zfs_dbgmsg-the-flight-recorder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zfs_dbgmsg: the flight recorder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kstats-counters-and-histories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kstats: counters and histories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zpool-events-history-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zpool events, history, status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux-static-tracepoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux static tracepoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#symptom-tool-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom -&gt; Tool Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-toolbox-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Toolbox at a Glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/mminkus/zfs-codebase/raw/master/docs/09-debugging-toolbox.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="part-9-the-debugging-toolbox">Part 9 - The Debugging Toolbox<a class="headerlink" href="#part-9-the-debugging-toolbox" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Every ZFS debugging tool is defined by which copy of the state it can
+see - and the most powerful ones are not in the kernel at all.</p>
+</blockquote>
+<h2 id="why-this-chapter-matters">Why This Chapter Matters<a class="headerlink" href="#why-this-chapter-matters" title="Permanent link">&para;</a></h2>
+<p>When something goes wrong in ZFS, the first question is never "what
+command do I run". It is "which state do I need to look at" - and only
+then "which tool can see that state". The pool exists in several places
+at once: on the disks, in the kernel module's in-memory SPA, in the ARC,
+in the debug log, and (once you start a userland tool) in a second,
+completely independent in-process import.</p>
+<p>The single most misunderstood fact in ZFS debugging is that <code>zdb</code>,
+<code>zhack</code>, and <code>ztest</code> are not clients of the kernel module. They are
+<em>userland pool imports</em>: the same <code>module/zfs/*.c</code> files you have read
+in Parts 1-8, compiled into a shared library (<code>libzpool</code>), importing the
+pool inside an ordinary process address space, reading the disks
+directly, independent of - and oblivious to - whatever the loaded kernel
+module is doing. <code>zinject</code>, <code>zpool events</code>, and the kstats are the
+opposite: they observe and manipulate the <em>kernel's</em> copy of the state.</p>
+<p>Confusing the two worlds produces the classic mysteries: "zdb reports
+leaked space but scrub is clean" (zdb raced the live kernel), "zdb works
+on machine A but segfaults on machine B" (it silently loaded the
+system's libzpool instead of the build tree's), "zinject does nothing"
+(the target pool is a file-backed pool inside ztest, not in the
+kernel). This chapter maps each tool to the state it can actually see,
+with the code that proves it.</p>
+<hr />
+<h2 id="scope-and-assumptions">Scope and Assumptions<a class="headerlink" href="#scope-and-assumptions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Linux platform; FreeBSD parity notes where the split matters.</li>
+<li>An in-tree autotools build (<code>./autogen.sh &amp;&amp; ./configure &amp;&amp; make</code>),
+  because the library-path trap below is a build-tree phenomenon.</li>
+</ul>
+<p>Line-number anchors in this chapter are based on the reference revision
+listed in <code>README.md</code> (<code>0f9564e85</code>). If you are on a newer OpenZFS
+commit, expect some drift and use symbol names to relocate.</p>
+<hr />
+<h2 id="diagram-1-two-worlds-one-set-of-disks">Diagram 1 - Two Worlds, One Set of Disks<a class="headerlink" href="#diagram-1-two-worlds-one-set-of-disks" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    subgraph K["Kernel world"]
+        KM["zfs.ko&lt;br/&gt;module/zfs/*.c"]
+        OBS["observability surfaces:&lt;br/&gt;dbgmsg, kstats, zpool events,&lt;br/&gt;history, tracepoints"]
+        ZI["zinject&lt;br/&gt;(ioctl into zio_inject.c)"]
+        KM --- OBS
+        ZI --&gt;|ZFS_IOC_INJECT_FAULT| KM
+    end
+
+    subgraph U["Userland world (per process)"]
+        LZ["libzpool.so&lt;br/&gt;the same module/zfs/*.c"]
+        ZDB["zdb (read-only import)"]
+        ZH["zhack (writeable import)"]
+        ZT["ztest (stress, file vdevs)"]
+        ZDB --&gt; LZ
+        ZH --&gt; LZ
+        ZT --&gt; LZ
+    end
+
+    KM --&gt;|"block I/O"| D[("vdevs (disks / files)")]
+    LZ --&gt;|"direct reads (and, for zhack, writes)"| D
+
+    style KM fill:#d7ecff,stroke:#333
+    style LZ fill:#ffe8cc,stroke:#333
+    style D fill:#d9f7d6,stroke:#333</code></pre>
+<p>The two worlds share nothing except the disks. There is no coherence
+protocol between them.</p>
+<hr />
+<h2 id="the-libzpool-model-kernel-code-in-a-library">The libzpool Model: Kernel Code in a Library<a class="headerlink" href="#the-libzpool-model-kernel-code-in-a-library" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>lib/libzpool/Makefile.am</code></li>
+<li><code>lib/libzpool/kernel.c</code></li>
+<li><code>lib/libspl/</code> (thread/lock/taskq/kstat emulation)</li>
+<li><code>config/Rules.am</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>nodist_libzpool_la_SOURCES</code> list (<code>lib/libzpool/Makefile.am:22</code>) -
+  <code>module/zfs/spa.c</code>, <code>module/zfs/zio.c</code>, <code>module/zfs/dmu_send.c</code>,
+  <code>module/zfs/metaslab.c</code>, ... compiled verbatim into the library</li>
+<li>"Emulation of kernel services in userland"
+  (<code>lib/libzpool/kernel.c:60</code>)</li>
+<li><code>kernel_init()</code> (<code>lib/libzpool/kernel.c:445</code>)</li>
+<li><code>LIBZPOOL_CPPFLAGS = -DDEBUG -UNDEBUG -DZFS_DEBUG</code>
+  (<code>config/Rules.am:77</code>)</li>
+</ul>
+<p><code>lib/libzpool/Makefile.am</code> does not wrap or reimplement the kernel
+code - it lists the actual <code>module/zfs/*.c</code> and <code>module/zcommon/*.c</code>
+files as library sources. What makes that compile is a shim layer:</p>
+<ul>
+<li><code>lib/libspl/</code> provides the primitive-emulation files: <code>thread.c</code>
+  (kernel threads as pthreads), <code>mutex.c</code>, <code>rwlock.c</code>, <code>condvar.c</code>,
+  <code>taskq.c</code>, <code>kmem.c</code>, <code>kstat.c</code>, <code>procfs_list.c</code>, <code>tunables.c</code>.</li>
+<li><code>lib/libzpool/kernel.c</code> provides the higher-level kernel services:
+  <code>kernel_init()</code>/<code>kernel_fini()</code> (userland <code>spa_init()</code> plus config
+  load), the <code>zfs_file_*</code> VFS shims (<code>zfs_file_open()</code> at
+  <code>kernel.c:536</code> and friends, so "device" I/O is plain <code>pread</code>/
+  <code>pwrite</code>), <code>zone_get_hostid()</code>, and no-op <code>zvol_*</code>/<code>spa_*_os()</code>
+  stubs.</li>
+<li><code>lib/libzpool/abd_os.c</code>, <code>arc_os.c</code>, <code>vdev_label_os.c</code>,
+  <code>zfs_debug.c</code> replace the <code>module/os/linux/zfs/</code> platform halves.</li>
+</ul>
+<p><code>kernel_init()</code> (<code>kernel.c:445</code>) is the userland analogue of module
+load: <code>libspl_init()</code>, <code>system_taskq_init()</code>, <code>icp_init()</code>,
+<code>spa_init(mode)</code>, <code>spa_config_load()</code>. Note the hostid line: a
+read-only caller gets <code>hostid = 0</code> and a writer gets the real system
+hostid (<code>kernel.c:456</code>) - userland tools participate in MMP hostid
+checks deliberately.</p>
+<p>One build detail that bites embedders: libzpool is <em>always</em> compiled
+with <code>-DZFS_DEBUG</code> (<code>config/Rules.am:74</code>: "Since ZFS_DEBUG can change
+shared data structures, all libzpool users must be compiled with the
+same flags"). Any code that includes OpenZFS internal headers and links
+against libzpool must define <code>ZFS_DEBUG</code> too, or struct layouts
+silently diverge.</p>
+<h3 id="consequence-1-userland-tools-read-the-disks-directly">Consequence 1 - Userland tools read the disks directly<a class="headerlink" href="#consequence-1-userland-tools-read-the-disks-directly" title="Permanent link">&para;</a></h3>
+<p>The zdb man page states it plainly (<code>man/man8/zdb.8:133</code>): zdb "is an
+'offline' tool; it accesses the block devices underneath the pools
+directly from userspace and does not care if the pool is imported or
+datasets are mounted (or even if the system understands ZFS at all).
+When operating on an imported and active pool it is possible, though
+unlikely, that zdb may interpret inconsistent pool data and behave
+erratically."</p>
+<p>That is the polite version. In practice, on a busy imported pool:</p>
+<ul>
+<li>zdb's snapshot of the space maps and the block tree are taken at
+  slightly different moments than the kernel's, so <code>zdb -b</code> can report
+  <em>spurious leaks</em> or checksum errors that a scrub will not confirm.</li>
+<li>zdb sets <code>spa_load_verify_dryrun = B_TRUE</code> precisely so its own
+  import does not fail on a "non-idle" pool (<code>cmd/zdb/zdb.c:9745</code>,
+  comment: "Do not fail spa_load when spa_load_verify fails. This is
+  needed to load non-idle pools").</li>
+<li>Transient read errors against blocks that were freed and reused
+  mid-run are expected noise.</li>
+</ul>
+<p>Rule of thumb: on a live pool, treat zdb output as advisory; for
+consistency questions (<code>-b</code>, <code>-c</code>), export the pool or use a
+checkpoint/snapshot of the truth you care about. If zdb and scrub
+disagree on a quiescent pool, believe neither until you rerun both.</p>
+<h3 id="consequence-2-the-import-is-in-process">Consequence 2 - The import is in-process<a class="headerlink" href="#consequence-2-the-import-is-in-process" title="Permanent link">&para;</a></h3>
+<p>zdb does a real <code>spa_import()</code>/<code>spa_open()</code> - the Part 7 state machine,
+executing inside the zdb process:</p>
+<ul>
+<li>For pools in the cachefile, <code>main()</code> calls <code>spa_open_rewind()</code>
+  (<code>zdb.c:10023</code>) after <code>zdb_set_skip_mmp()</code> (<code>zdb.c:7896</code>) marks the
+  spa with <code>ZFS_IMPORT_SKIP_MMP</code> - "Disable the activity check to allow
+  examination of active pools". This is why Part 7 said the MMP check
+  is skipped "for zdb".</li>
+<li>With <code>-e</code> (usage: "pool is exported/destroyed/has altroot/not in a
+  cachefile"), zdb runs the <em>userland discovery</em> half of Part 7
+  itself: <code>zpool_find_config()</code> (<code>zdb.c:9925</code>) scans <code>-p &lt;path&gt;</code>
+  directories (default <code>/dev</code>) for labels, then
+  <code>spa_import(target_pool, cfg, NULL, flags | ZFS_IMPORT_SKIP_MMP)</code>
+  (<code>zdb.c:9945</code>) with <code>flags</code> defaulting to <code>ZFS_IMPORT_MISSING_LOG</code>.
+  zdb even auto-detects the case where the pool has <code>cachefile=none</code>
+  and quietly switches to this path (the "Automate cachefile" block,
+  <code>zdb.c:9773</code>).</li>
+<li><code>-t &lt;txg&gt;</code> feeds <code>ZPOOL_LOAD_REQUEST_TXG</code> into the load policy and
+  <code>-F</code>/<code>-X</code> map to <code>ZPOOL_DO_REWIND</code>/<code>ZPOOL_EXTREME_REWIND</code>
+  (<code>zdb.c:9855</code>, <code>zdb.c:9846</code>) - the same rewind machinery as
+  <code>zpool import -F/-X</code>, but in-process and read-only.</li>
+</ul>
+<p>Because the import is process-local, all of libzpool's global state
+(the spa namespace, the ARC, the taskqs) is process-global and
+per-process. Two zdb invocations know nothing about each other; a
+long-lived embedder (see below) gets exactly one pool namespace and
+must serialize accordingly.</p>
+<h3 id="consequence-3-the-library-path-trap">Consequence 3 - The library-path trap<a class="headerlink" href="#consequence-3-the-library-path-trap" title="Permanent link">&para;</a></h3>
+<p>This one costs people real hours, so here is the mechanism end to end.</p>
+<p>In-tree binaries are libtool wrappers. After <code>make</code>, the <code>zdb</code> in the
+top-level directory is a shell script:</p>
+<div class="highlight"><pre><span></span><code>$ file zdb
+zdb: Bourne-Again shell script, ASCII text executable
+$ sed -n '3,10p' zdb
+# zdb - temporary wrapper script for .libs/zdb
+# Generated by libtool ...
+# This wrapper script should never be moved out of the build directory.
+# If it is, it will not operate correctly.
+</code></pre></div>
+<p>The wrapper's whole job is one line (generated with an <em>absolute</em>,
+baked-in build path):</p>
+<div class="highlight"><pre><span></span><code>LD_LIBRARY_PATH="/path/to/your/build/tree/.libs:$LD_LIBRARY_PATH"
+</code></pre></div>
+<p>and then it executes the real binary, <code>.libs/zdb</code>. The build is
+non-recursive automake: every real library and binary lands in the
+single <em>top-level</em> <code>.libs/</code> directory. The per-directory <code>lib/*/.libs/</code>
+directories contain only object files - pointing <code>LD_LIBRARY_PATH</code>
+there does nothing:</p>
+<div class="highlight"><pre><span></span><code>build tree
+|-- zdb                  &lt;- shell wrapper, absolute path baked in
+|-- .libs/
+|   |-- zdb              &lt;- the real ELF binary
+|   |-- libzpool.so.7    &lt;- the real libraries
+|   |-- libnvpair.so.3
+|   `-- libzfs_core.so.3
+`-- lib/libzpool/.libs/
+    `-- *.o only         &lt;- NOT a library directory
+</code></pre></div>
+<p>Now the failure modes:</p>
+<ul>
+<li>Run the wrapper from a <em>moved or copied</em> tree: the baked-in absolute
+  path points at the old location. The wrapper header warns about
+  exactly this.</li>
+<li>Run <code>.libs/zdb</code> directly (or ship it to another machine): the binary
+  has <code>NEEDED libzpool.so.7, libzfs_core.so.3, libnvpair.so.3</code> and <em>no
+  RPATH</em>. The dynamic linker falls back to the system library
+  directories. Whichever SONAMEs the distro's ZFS package provides get
+  <em>silently substituted</em> - you are now running your zdb code against
+  the system's libnvpair/libzfs_core. SONAMEs the system does not have
+  fail loudly (<code>libzpool.so.7 =&gt; not found</code> if the distro ships
+  <code>libzpool.so.6</code>).</li>
+<li>Mix versions - a zdb from one revision against a libzpool from
+  another: libzpool exports raw internal structures (<code>spa_t</code>,
+  <code>dnode_phys_t</code>, metaslab trees) with no ABI stability of any kind,
+  and <code>ZFS_DEBUG</code> alone changes struct layouts (<code>config/Rules.am:74</code>).
+  The typical result is a segfault at or shortly after startup;
+  the insidious result is subtly wrong decoding.</li>
+</ul>
+<p>The fix is always the same: point the loader at the <em>top-level</em>
+<code>.libs</code> of the tree you built:</p>
+<div class="highlight"><pre><span></span><code>LD_LIBRARY_PATH=/path/to/zfs/.libs /path/to/zfs/.libs/zdb -e tank
+</code></pre></div>
+<p>or run through the wrapper from an unmoved build tree, or use
+<code>./libtool --mode=execute</code> (next section) which does this for you.</p>
+<h3 id="consequence-4-the-superpower-userland-debugging-of-kernel-logic">Consequence 4 - The superpower: userland debugging of kernel logic<a class="headerlink" href="#consequence-4-the-superpower-userland-debugging-of-kernel-logic" title="Permanent link">&para;</a></h3>
+<p>Because <code>spa_load_impl()</code>, <code>zio_done()</code>, <code>dsl_scan_sync()</code> and friends
+are just functions in a process, every userland debugging tool works on
+them:</p>
+<ul>
+<li><code>gdb</code> - attach to or launch the <em>real</em> binary. The wrapper script is
+  not debuggable directly; use either of:</li>
+</ul>
+<div class="highlight"><pre><span></span><code>./libtool --mode=execute gdb --args ./zdb -e -p /var/tmp tank
+LD_LIBRARY_PATH=$PWD/.libs gdb --args .libs/zdb -e -p /var/tmp tank
+</code></pre></div>
+<p>A breakpoint on <code>spa_ld_select_uberblock</code> or <code>zdb_blkptr_cb</code> now
+  works like any application breakpoint. zdb and zhack both install
+  SIGSEGV/SIGABRT handlers that print a backtrace and the debug buffer
+  (<code>zdb.c:9471</code>, <code>cmd/zhack.c:1321</code>), so even without gdb a crash is
+  informative.
+- Sanitizers - <code>./configure --enable-debug --enable-asan
+  --enable-ubsan</code> (<code>config/zfs-build.m4:44</code>,
+  <code>config/always-compiler-options.m4:13</code>, <code>:60</code>) builds the userland
+  half (libzpool, zdb, ztest) with ASan/UBSan. Memory corruption in
+  DMU logic that would be a kernel panic plus a crash dump becomes an
+  ASan report with a symbolized stack.
+- <code>valgrind</code>, <code>perf</code>, <code>strace</code> - all apply. <code>ztest</code> runs under
+  valgrind are a standard way to chase use-after-free bugs in shared
+  code.</p>
+<p>This is the practical reason the libzpool architecture exists at all:
+<code>--enable-debug</code> turns on the <code>ASSERT</code>/<code>VERIFY</code> machinery everywhere,
+and userland is where those assertions are cheapest to hit, debug, and
+fix.</p>
+<h3 id="consequence-5-the-model-is-embeddable">Consequence 5 - The model is embeddable<a class="headerlink" href="#consequence-5-the-model-is-embeddable" title="Permanent link">&para;</a></h3>
+<p>Nothing restricts libzpool to the bundled tools. Upstream itself has
+started extracting zdb's decoding helpers into a library
+(<code>lib/libzdb/libzdb.c</code> at the pin), and out-of-tree projects can link
+<code>-lzpool</code> and get a programmable zdb.</p>
+<p>A worked example is
+<a href="https://github.com/mminkus/zfs-explorer">zfs-explorer</a>: a web UI for
+ZFS internals whose backend is a Rust API server calling a custom C
+decode layer (<code>libzdbdecode.so</code>, functions prefixed <code>zdx_*</code>) built
+against libzpool and the OpenZFS internal headers. Its design choices
+independently confirm this chapter's constraints:</p>
+<ul>
+<li>It vendors OpenZFS as a pinned git submodule and links against that
+  build's libraries via an explicit rpath - precisely to avoid the
+  system-library SONAME substitution trap above. Its Makefile also
+  carries the corollary: "OpenZFS forces libzpool users to compile
+  with ZFS_DEBUG as well", adding <code>-DDEBUG -UNDEBUG -DZFS_DEBUG</code> to
+  match <code>config/Rules.am</code>.</li>
+<li>It calls <code>kernel_init(SPA_MODE_READ)</code> exactly once (guarded by a
+  once-primitive) and serializes <em>every</em> FFI call through one global
+  mutex, because libzpool's spa namespace, ARC, and taskqs are
+  process-global - there is no per-pool-handle isolation to lean on.</li>
+<li>It initializes read-only, the same posture zdb takes: in the
+  userland-import model, "read-only process" is the only safety
+  boundary between your bugs and the pool's disks.</li>
+</ul>
+<p>The takeaway: "build your own zdb" is a real option - a few hundred
+lines of C gets you decoded MOS objects served over HTTP - but the
+model's constraints (one import per process, no ABI stability, global
+state, ZFS_DEBUG flag matching) come with it.</p>
+<hr />
+<h2 id="tool-1-zdb-the-read-only-microscope">Tool 1 - zdb: The Read-Only Microscope<a class="headerlink" href="#tool-1-zdb-the-read-only-microscope" title="Permanent link">&para;</a></h2>
+<p>Primary file:</p>
+<ul>
+<li><code>cmd/zdb/zdb.c</code> (plus <code>cmd/zdb/zdb_il.c</code> for ZIL records)</li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>usage()</code> (<code>cmd/zdb/zdb.c:722</code>), <code>main()</code> (<code>zdb.c:9438</code>)</li>
+<li><code>kernel_init(SPA_MODE_READ)</code> (<code>zdb.c:9815</code>) - zdb is read-only by
+  construction; there is no write mode</li>
+</ul>
+<p><code>main()</code> also quietly reshapes the environment for safety and speed:
+ARC capped at 256 MB (<code>zdb.c:9726</code>), <code>spa_load_verify_dryrun</code>
+(<code>zdb.c:9745</code>), <code>spa_mode_readable_spacemaps</code> (<code>zdb.c:9750</code>), and, once
+the pool is open, <code>spa-&gt;spa_failmode = ZIO_FAILURE_MODE_PANIC</code>
+(<code>zdb.c:10118</code>) so a suspended I/O kills the process instead of hanging
+it forever.</p>
+<h3 id="flag-families-mapped-to-their-handlers">Flag families, mapped to their handlers<a class="headerlink" href="#flag-families-mapped-to-their-handlers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>What it dumps</th>
+<th>Handler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-C</code></td>
+<td>pool config (cachefile if used alone)</td>
+<td><code>dump_config()</code> (<code>zdb.c:4507</code>), <code>dump_cachefile()</code> (<code>zdb.c:4531</code>)</td>
+</tr>
+<tr>
+<td><code>-l &lt;device&gt;</code></td>
+<td>all 4 labels of one device (+<code>-u</code> uberblocks)</td>
+<td><code>dump_label()</code> (<code>zdb.c:5448</code>)</td>
+</tr>
+<tr>
+<td><code>-u</code></td>
+<td>active uberblock</td>
+<td><code>dump_uberblock()</code> (<code>zdb.c:4456</code>)</td>
+</tr>
+<tr>
+<td><code>-d</code></td>
+<td>datasets and objects; more <code>d</code>s = more depth</td>
+<td><code>dump_objset()</code> (<code>zdb.c:4290</code>), <code>dump_object()</code> (<code>zdb.c:3944</code>)</td>
+</tr>
+<tr>
+<td><code>-i</code></td>
+<td>intent logs</td>
+<td><code>dump_intent_log()</code> (<code>cmd/zdb/zdb_il.c</code>)</td>
+</tr>
+<tr>
+<td><code>-b</code></td>
+<td>full block traversal + leak detection</td>
+<td><code>dump_block_stats()</code> (<code>zdb.c:7258</code>), <code>zdb_blkptr_cb()</code> (<code>zdb.c:6346</code>)</td>
+</tr>
+<tr>
+<td><code>-c</code></td>
+<td>+ checksum metadata (twice: all data)</td>
+<td>read issued inside <code>zdb_blkptr_cb()</code> (<code>zdb.c:6379</code>)</td>
+</tr>
+<tr>
+<td><code>-m</code></td>
+<td>metaslabs and space maps</td>
+<td><code>dump_metaslabs()</code> (<code>zdb.c:1932</code>), <code>dump_metaslab()</code> (<code>zdb.c:1708</code>)</td>
+</tr>
+<tr>
+<td><code>-M</code></td>
+<td>metaslab groups</td>
+<td><code>dump_metaslab_groups()</code> (<code>zdb.c:1815</code>)</td>
+</tr>
+<tr>
+<td><code>-D</code></td>
+<td>dedup table stats</td>
+<td><code>dump_all_ddts()</code> (<code>zdb.c:2194</code>)</td>
+</tr>
+<tr>
+<td><code>-h</code></td>
+<td>pool history (as stored in the MOS)</td>
+<td><code>dump_history()</code> (<code>zdb.c:2387</code>)</td>
+</tr>
+<tr>
+<td><code>-k</code></td>
+<td>the checkpointed state of the pool</td>
+<td><code>import_checkpointed_state()</code> (<code>zdb.c:7930</code>)</td>
+</tr>
+<tr>
+<td><code>-B</code></td>
+<td>re-emit an objset as a send stream</td>
+<td><code>dump_backup()</code> (<code>zdb.c:5279</code>)</td>
+</tr>
+<tr>
+<td><code>-O</code> / <code>-r</code></td>
+<td>path -&gt; object lookup / copy object out</td>
+<td><code>dump_path()</code> (<code>zdb.c:5229</code>), <code>zdb_copy_object()</code></td>
+</tr>
+<tr>
+<td><code>-R</code></td>
+<td>raw block read by <code>vdev:offset:size[:flags]</code></td>
+<td><code>zdb_read_block()</code> (<code>zdb.c:9099</code>)</td>
+</tr>
+<tr>
+<td><code>-G</code></td>
+<td>dump the debug log on exit</td>
+<td><code>dump_debug_buffer()</code> (<code>zdb.c:870</code>)</td>
+</tr>
+<tr>
+<td><code>--allocated-map</code></td>
+<td>list allocated ranges (for zhack)</td>
+<td><code>ARG_ALLOCATED</code> (<code>zdb.c:9574</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Modifier flags: <code>-e</code>/<code>-p</code>/<code>-t</code>/<code>-F</code>/<code>-X</code>/<code>-V</code> shape the import (above);
+<code>-U &lt;cachefile&gt;</code> and the <code>SPA_CONFIG_PATH</code> env var (<code>zdb.c:9485</code>)
+choose the config source; <code>-I</code> bounds in-flight checksum I/O
+(<code>zdb_blkptr_cb()</code> blocks while <code>spa_load_verify_bytes</code> exceeds it,
+<code>zdb.c:6389</code>); <code>-A</code>/<code>-AA</code>/<code>-AAA</code> relax assertions (<code>-A</code> makes asserts
+non-fatal, <code>-AA</code> sets <code>zfs_recover</code>, <code>zdb.c:9752</code>); <code>-o
+name=value</code> sets libzpool tunables - the userland mirror of
+<code>/sys/module/zfs/parameters</code>.</p>
+<h3 id="leak-detection-how-b-actually-works">Leak detection: how <code>-b</code> actually works<a class="headerlink" href="#leak-detection-how-b-actually-works" title="Permanent link">&para;</a></h3>
+<p><code>dump_block_stats()</code> explains itself in a comment worth quoting
+(<code>zdb.c:7288</code>): "When leak detection is enabled we load all space maps
+as SM_ALLOC maps, then traverse the pool claiming each block we
+discover. If the pool is perfectly consistent, the segment trees will
+be empty when we're done. Anything left over is a leak; any block we
+can't claim ... is a double allocation, reference to a freed block, or
+an unclaimed log block."</p>
+<p>Mechanically: <code>zdb_leak_init()</code> (<code>zdb.c:6938</code>) repurposes every
+metaslab's <code>ms_allocatable</code> range tree to hold <em>allocated</em> segments
+(loading space maps with <code>SM_ALLOC</code>), excludes checkpoint-referenced
+ranges to avoid false positives, then the traversal
+(<code>zdb_blkptr_cb()</code>) removes each visited block pointer's segments.
+<code>zdb_leak_fini()</code> (<code>zdb.c:7077</code>) prints whatever survives as
+<code>leaked space: vdev %llu, offset 0x%llx, size %llu</code> (<code>zdb.c:6440</code>), and
+the summary line is either "No leaks (block sum matches space maps
+exactly)" or a <code>block traversal size ... != alloc ...</code> mismatch
+(<code>zdb.c:7389</code>). <code>-L</code> (<code>--disable-leak-tracking</code>) skips loading space
+maps entirely - use it when you want block stats without the memory
+cost or the false positives of a live pool.</p>
+<p>On the MOS side, <code>-d</code> runs <code>dump_mos_leaks()</code> (<code>zdb.c:8419</code>) unless
+<code>-L</code> is given: it marks every MOS object reachable from known roots
+(<code>mos_obj_refd()</code>) and prints <code>MOS object %llu (%s) leaked</code> for
+allocated-but-unreferenced objects, alongside per-feature refcount
+verification ("feature refcount mismatch") in <code>dump_zpool()</code>
+(<code>zdb.c:8635</code>).</p>
+<p>Exit codes encode the verdict: zdb exits 3 when <code>corruption_found</code> was
+set even if nothing else failed (<code>zdb.c:10204</code>), 2 for usage/config
+problems, 1 for fatal errors.</p>
+<h3 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>On a live pool: expect transient errors from <code>-b</code>/<code>-c</code>; rerun before
+  believing them, prefer an exported pool or <code>-k</code> (checkpoint) for
+  verdicts you plan to act on.</li>
+<li><code>zdb -dd</code> on a big pool emits gigabytes. Redirect to a file on real
+  storage (not tmpfs) and grep; <code>-N</code>, object ranges
+  (<code>&lt;start&gt;:&lt;end&gt;[:flags]</code>), and <code>&lt;pool&gt;/&lt;objset-id&gt;</code> arguments narrow
+  the walk to what you need.</li>
+<li><code>-G</code> appends the in-process <code>zfs_dbgmsg</code> buffer to stderr on exit
+  via <code>zfs_dbgmsg_print()</code> (<code>lib/libzpool/zfs_debug.c:100</code>). This is
+  the <em>userland import's</em> debug log - <code>spa_load()</code> breadcrumbs from
+  zdb's own import, invaluable with <code>-e</code> on a damaged pool. It is not
+  the kernel's <code>/proc/spl/kstat/zfs/dbgmsg</code>.</li>
+</ul>
+<hr />
+<h2 id="tool-2-zhack-writing-with-the-safety-off">Tool 2 - zhack: Writing With the Safety Off<a class="headerlink" href="#tool-2-zhack-writing-with-the-safety-off" title="Permanent link">&para;</a></h2>
+<p>Primary file:</p>
+<ul>
+<li><code>cmd/zhack.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li>header comment (<code>cmd/zhack.c:29</code>): "zhack is a debugging tool that
+  can write changes to ZFS pool using libzpool for testing purposes.
+  Altering pools with zhack is unsupported and may result in corrupted
+  pools."</li>
+<li><code>usage()</code> (<code>zhack.c:73</code>), <code>main()</code> (<code>zhack.c:1305</code>)</li>
+<li><code>zhack_import()</code> (<code>zhack.c:193</code>), <code>zhack_spa_open()</code> (<code>zhack.c:238</code>)</li>
+</ul>
+<p>zhack is zdb's dangerous sibling: the same userland import, but
+<code>kernel_init(SPA_MODE_READ | SPA_MODE_WRITE)</code> (<code>zhack.c:199</code>) and a
+real writeable <code>spa_import()</code>. Two lines in <code>zhack_import()</code> deserve
+attention:</p>
+<ul>
+<li><code>zfeature_checks_disable = B_TRUE</code> around both <code>spa_import()</code> and
+  <code>spa_open()</code> (<code>zhack.c:224</code>, <code>:244</code>) - zhack will open pools whose
+  feature flags would stop a normal import, because operating on such
+  pools is its job.</li>
+<li>read-only opens set <code>ZFS_IMPORT_SKIP_MMP</code> and
+  <code>can_be_active</code> (<code>zhack.c:205</code>); writeable opens do <em>not</em> - and
+  <code>main()</code> ends with a mandatory <code>spa_export()</code> (<code>zhack.c:1382</code>,
+  "changes may not be committed to disk" if it fails).</li>
+</ul>
+<p>The subcommands at the pin (<code>usage()</code>, <code>zhack.c:76</code>):</p>
+<ul>
+<li><code>feature stat &lt;pool&gt;</code> - print the MOS feature ZAPs
+  (<code>zhack_do_feature_stat()</code>, <code>zhack.c:299</code>).</li>
+<li><code>feature enable [-r] [-d desc] &lt;pool&gt; &lt;guid&gt;</code> - inject a new enabled
+  feature via a real DSL sync task (<code>zhack_do_feature_enable()</code>,
+  <code>zhack.c:342</code>, dispatching <code>feature_enable_sync()</code> through
+  <code>dsl_sync_task()</code> at <code>zhack.c:405</code>).</li>
+<li><code>feature ref [-md] &lt;pool&gt; &lt;guid&gt;</code> - increment/decrement a feature
+  refcount (<code>zhack_do_feature_ref()</code>, <code>zhack.c:444</code>). This is how test
+  suites fabricate "unsupported feature" pools; it is also how you
+  can, very carefully, unwedge a pool whose refcount is wrong.</li>
+<li><code>label repair -c|-u &lt;device&gt;</code> - fix label checksums (<code>-c</code>) or
+  restore the labels of a detached mirror device (<code>-u</code>)
+  (<code>zhack_do_label_repair()</code>, <code>zhack.c:1247</code>). Operates on one device
+  file, no import at all.</li>
+<li><code>metaslab leak &lt;pool&gt;</code> - reads a <code>zdb --allocated-map</code> dump on stdin
+  and force-allocates those ranges (<code>zhack_do_metaslab_leak()</code>,
+  <code>zhack.c:665</code>, <code>metaslab_force_alloc()</code> at <code>zhack.c:637</code>),
+  deliberately leaking space to exercise leak handling.</li>
+<li><code>action idle [-t seconds] &lt;pool&gt;</code> - import, wait, export
+  (<code>zhack_do_action_idle()</code>, <code>zhack.c:558</code>) - a test fixture for
+  "pool is busy in another process" scenarios.</li>
+</ul>
+<p>Like zdb, zhack takes <code>-o tunable=value</code> and <code>-G</code> (dump the debug
+buffer on exit), and it wires the same crash handlers.</p>
+<p>The operational warning follows directly from Diagram 1: zhack writes
+to the disks with the kernel bypassed. If the kernel module has the
+pool imported while zhack writes, two uncoordinated writers share one
+pool, and the kernel's in-memory state is instantly stale. The pool
+must be exported first; zhack's writeable path leaves MMP active
+(no <code>SKIP_MMP</code>) as a last line of defense, not as permission.</p>
+<hr />
+<h2 id="tool-3-zinject-fault-injection-inside-the-kernel">Tool 3 - zinject: Fault Injection Inside the Kernel<a class="headerlink" href="#tool-3-zinject-fault-injection-inside-the-kernel" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>cmd/zinject/zinject.c</code>, <code>cmd/zinject/translate.c</code></li>
+<li><code>module/zfs/zio_inject.c</code></li>
+</ul>
+<p>Key anchors:</p>
+<ul>
+<li><code>usage()</code> (<code>cmd/zinject/zinject.c:286</code>)</li>
+<li><code>register_handler()</code> -&gt; <code>ZFS_IOC_INJECT_FAULT</code>
+  (<code>zinject.c:700</code>, <code>:709</code>)</li>
+<li><code>zfs_ioc_inject_fault()</code> (<code>module/zfs/zfs_ioctl.c:6071</code>) -&gt;
+  <code>zio_inject_fault()</code> (<code>module/zfs/zio_inject.c:953</code>)</li>
+<li><code>zio_injection_enabled</code> (<code>zio_inject.c:54</code>)</li>
+</ul>
+<p>zinject is the mirror image of zdb: it does <em>not</em> import anything in
+userland. It translates a user-visible name (a file path, a vdev, a
+pool) into an internal tuple - the file-to-object translation uses
+libzfs and the mounted filesystem, not libzpool (the header comment's
+"via libzpool" predates the current build, which links
+<code>libzfs.la libzfs_core.la libnvpair.la</code> only,
+<code>cmd/zinject/Makefile.am</code>) - and registers a <code>zinject_record_t</code> with
+the <em>running kernel module</em> via <code>ZFS_IOC_INJECT_FAULT</code>. The kernel
+keeps a global handler list; each registered handler holds the spa so
+the pool cannot be exported while injection is active, and the
+<code>zio_injection_enabled</code> counter is "the switch to trigger all fault
+injection" (<code>zio_inject.c:950</code>).</p>
+<p>The pipeline (Part 3) then polls the handler list at fixed points.
+Verified call sites at the pin:</p>
+<table>
+<thead>
+<tr>
+<th>Hook</th>
+<th>Called from</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>zio_handle_fault_injection(zio, EIO)</code> (<code>zio_inject.c:270</code>)</td>
+<td><code>zio_vdev_io_assess()</code> (<code>module/zfs/zio.c:4935</code>)</td>
+<td>data-level read/write errors by bookmark/objset/object/range</td>
+</tr>
+<tr>
+<td><code>zio_handle_fault_injection(zio, EINVAL)</code></td>
+<td><code>zio_decompress()</code> (<code>zio.c:563</code>)</td>
+<td>decompress faults</td>
+</tr>
+<tr>
+<td><code>zio_handle_decrypt_injection()</code> (<code>zio_inject.c:208</code>)</td>
+<td><code>zio_decrypt()</code> (<code>zio.c:626</code>, <code>:650</code>), <code>dsl_crypt.c:2887</code></td>
+<td>decrypt/MAC faults</td>
+</tr>
+<tr>
+<td><code>zio_handle_device_injection(vd, zio, ENOSYS)</code> (<code>zio_inject.c:506</code>)</td>
+<td><code>zio_vdev_io_start()</code> (<code>zio.c:4787</code>)</td>
+<td>fail flushes</td>
+</tr>
+<tr>
+<td><code>zio_handle_device_injections(vd, zio, EIO, EILSEQ)</code> (<code>zio_inject.c:512</code>)</td>
+<td><code>zio_vdev_io_done()</code> (<code>zio.c:4826</code>)</td>
+<td>per-vdev I/O errors, bit flips</td>
+</tr>
+<tr>
+<td><code>zio_handle_label_injection(zio, EIO)</code> (<code>zio_inject.c:322</code>)</td>
+<td><code>zio_vdev_io_done()</code> (<code>zio.c:4830</code>)</td>
+<td>label-region errors (<code>-L uber/nvlist/pad1/pad2</code>)</td>
+</tr>
+<tr>
+<td><code>zio_handle_io_delay()</code> (<code>zio_inject.c:599</code>)</td>
+<td><code>vdev_disk.c:1189</code>, <code>vdev_file.c:300</code>, <code>vdev_geom.c:1179</code></td>
+<td><code>-D latency:lanes</code> artificial latency</td>
+</tr>
+<tr>
+<td><code>zio_handle_ignored_writes()</code> (<code>zio_inject.c:522</code>)</td>
+<td><code>zio_ready()</code> (<code>zio.c:5462</code>)</td>
+<td><code>-I</code>: drop writes silently (broken flush simulation)</td>
+</tr>
+<tr>
+<td><code>zio_handle_import_delay()</code> / <code>_export_delay()</code> (<code>zio_inject.c:816</code>, <code>:825</code>)</td>
+<td><code>spa.c:6257</code>, <code>spa.c:7807</code></td>
+<td><code>-P import/export -s N</code></td>
+</tr>
+<tr>
+<td><code>zio_handle_panic_injection()</code> (<code>zio_inject.c:180</code>)</td>
+<td><code>spa.c:9231</code>, <code>:9299</code>, <code>:9340</code>, <code>spa_misc.c:1380</code></td>
+<td><code>-p &lt;function&gt;</code>: panic at config-exit points</td>
+</tr>
+</tbody>
+</table>
+<p>Common recipes (all forms verified against <code>usage()</code>):</p>
+<div class="highlight"><pre><span></span><code># checksum error on one file's data, 5% of reads
+zinject -t data -e checksum -f 5 /tank/fs/file
+
+# flip bits on reads of one vdev (device level)
+zinject -d /dev/sdb1 -e corrupt -T read tank
+
+# make a disk look dead (reopen also fails)
+zinject -d /dev/sdb1 -e nxio tank
+
+# 25ms single-lane latency on a vdev
+zinject -d /dev/sdb1 -D 25:1 tank
+
+# stall the next import 10 seconds (races in spa_load)
+zinject -P import -s 10 tank
+
+# list handlers, then remove everything
+zinject
+zinject -c all
+</code></pre></div>
+<p>Cleanup matters: handlers persist until cleared (<code>zinject -c all</code>,
+<code>ZFS_IOC_CLEAR_FAULT</code>) and hold the spa. The <code>-f</code> frequency knob is
+implemented by <code>freq_triggered()</code> (<code>zio_inject.c:110</code>).</p>
+<p>The ZTS uses zinject heavily; if you are writing a reproducer for an
+error-path bug, a zinject handler plus a <code>zpool scrub</code> is usually
+faster and more deterministic than hunting real hardware failures.</p>
+<p>Note the state boundary: zinject faults the <em>kernel's</em> pipeline. It
+cannot inject into a zdb or ztest run - those processes have their own
+<code>zio_injection_enabled</code> (ztest injects its own faults internally,
+<code>ztest_fault_inject()</code>, <code>cmd/ztest.c:6417</code>).</p>
+<hr />
+<h2 id="tool-4-ztest-and-zloop-stress-in-a-process">Tool 4 - ztest and zloop: Stress in a Process<a class="headerlink" href="#tool-4-ztest-and-zloop-stress-in-a-process" title="Permanent link">&para;</a></h2>
+<p>Primary files:</p>
+<ul>
+<li><code>cmd/ztest.c</code></li>
+<li><code>scripts/zloop.sh</code></li>
+</ul>
+<p>The design comment at the top of <code>cmd/ztest.c:34</code> is the spec: ztest
+runs "a DMU/ZAP/SPA stress test ... entirely in userland" by (1)
+writing one small routine per functional area, (2) running them all in
+parallel against file vdevs, (3) injecting faults while doing so, (4)
+randomizing checksum/compression per dataset open, (5) running the
+whole test in a child process that "self-immolates with a SIGKILL" at
+random - "the software equivalent of pulling the power cord" - and
+verifying the pool survives reimport, and (6) tagging data with txg
+numbers to catch temporal leaks.</p>
+<p><code>ztest_run()</code> (<code>ztest.c:8371</code>) drives the thread army;
+<code>ztest_run_zdb()</code> (<code>ztest.c:7364</code>) runs the in-tree zdb against the
+pool after the run as an independent consistency check - zdb as an
+oracle, which is why zdb's leak detection has to stay trustworthy.</p>
+<p><code>scripts/zloop.sh</code> is the harness that makes ztest useful overnight:
+each iteration picks a randomized pool topology - mirrors, raidz of
+random width/parity, raidz expansion (sometimes with the dedicated
+<code>-X</code> expansion test), or dRAID (<code>zloop.sh:255</code> onward) - runs ztest in
+a scratch workdir, and on any failure <code>store_core()</code> (<code>zloop.sh:116</code>)
+preserves the evidence: it moves the vdev files and <code>zpool.cache</code> into
+a timestamped directory, runs <code>zdb -U &lt;cache&gt; -dddMmDDG ztest</code> over
+the corpse, and captures a full <code>gdb</code> backtrace bundle
+(<code>thread apply all bt full</code>) from the core.</p>
+<p>This closes the loop with Consequence 4: a ztest crash is an ordinary
+userland core file of kernel-logic code. <code>gdb .libs/ztest core</code> (with
+<code>LD_LIBRARY_PATH</code> pointing at the build's <code>.libs</code>, per the trap
+section) puts you inside <code>dsl_scan_sync()</code> or <code>metaslab_alloc()</code> at the
+moment of failure, with full symbols and no kdump pipeline.</p>
+<hr />
+<h2 id="kernel-side-observability">Kernel-Side Observability<a class="headerlink" href="#kernel-side-observability" title="Permanent link">&para;</a></h2>
+<p>Everything above (except zinject) watched the userland world. These
+surfaces watch the kernel module.</p>
+<h3 id="zfs_dbgmsg-the-flight-recorder">zfs_dbgmsg: the flight recorder<a class="headerlink" href="#zfs_dbgmsg-the-flight-recorder" title="Permanent link">&para;</a></h3>
+<p>Primary files:</p>
+<ul>
+<li><code>module/os/linux/zfs/zfs_debug.c</code> (FreeBSD:
+  <code>module/os/freebsd/zfs/zfs_debug.c</code>)</li>
+<li><code>include/sys/zfs_debug.h</code></li>
+</ul>
+<p>The kernel keeps a ring of debug messages, on by default
+(<code>zfs_dbgmsg_enable = B_TRUE</code>, <code>zfs_debug.c:53</code>), capped at 4 MB
+(<code>zfs_dbgmsg_maxsize</code>, <code>zfs_debug.c:39</code>), exposed as a procfs list
+(<code>procfs_list_install("zfs", NULL, "dbgmsg", ...)</code>, <code>zfs_debug.c:98</code>).
+The usage comment (<code>zfs_debug.c:41</code>) is the manual:</p>
+<div class="highlight"><pre><span></span><code># Print debug messages
+cat /proc/spl/kstat/zfs/dbgmsg
+
+# Disable the kernel debug message log.
+echo 0 &gt; /sys/module/zfs/parameters/zfs_dbgmsg_enable
+
+# Clear the kernel debug message log.
+echo 0 &gt;/proc/spl/kstat/zfs/dbgmsg
+</code></pre></div>
+<p>The clear works because the procfs list registers <code>zfs_dbgmsg_clear()</code>
+(<code>zfs_debug.c:86</code>) as its write handler - any write truncates the
+list.</p>
+<p>Two producers feed it (<code>include/sys/zfs_debug.h:88</code>):</p>
+<ul>
+<li><code>zfs_dbgmsg(...)</code> - always compiled, rate-disciplined by convention
+  (the block comment at <code>zfs_debug.h:74</code>: O(1) per txg on normal
+  paths, always log the unusual). The Part 7 <code>spa_load_note()</code> /
+  <code>spa_load_failed()</code> breadcrumbs are the canonical example - for any
+  import problem, this log names the failing stage.</li>
+<li><code>dprintf(...)</code> - compiled only under <code>ZFS_DEBUG</code>
+  (i.e. <code>--enable-debug</code> module builds), and even then gated at
+  runtime on <code>zfs_flags &amp; ZFS_DEBUG_DPRINTF</code> (<code>zfs_debug.h:98</code>).</li>
+</ul>
+<p><code>zfs_flags</code> is a bitmask of debug behaviors
+(<code>include/sys/zfs_debug.h:50</code>), settable at runtime via
+<code>/sys/module/zfs/parameters/zfs_flags</code>:</p>
+<div class="highlight"><pre><span></span><code>ZFS_DEBUG_DPRINTF            (1 &lt;&lt; 0)   enable dprintf logging
+ZFS_DEBUG_DBUF_VERIFY        (1 &lt;&lt; 1)
+ZFS_DEBUG_DNODE_VERIFY       (1 &lt;&lt; 2)
+ZFS_DEBUG_SNAPNAMES          (1 &lt;&lt; 3)
+ZFS_DEBUG_MODIFY             (1 &lt;&lt; 4)
+                             (1 &lt;&lt; 5)   retired, "try not to reuse"
+ZFS_DEBUG_ZIO_FREE           (1 &lt;&lt; 6)
+ZFS_DEBUG_HISTOGRAM_VERIFY   (1 &lt;&lt; 7)
+ZFS_DEBUG_METASLAB_VERIFY    (1 &lt;&lt; 8)
+ZFS_DEBUG_SET_ERROR          (1 &lt;&lt; 9)   log every SET_ERROR() site
+ZFS_DEBUG_INDIRECT_REMAP     (1 &lt;&lt; 10)
+ZFS_DEBUG_TRIM               (1 &lt;&lt; 11)
+ZFS_DEBUG_LOG_SPACEMAP       (1 &lt;&lt; 12)
+ZFS_DEBUG_METASLAB_ALLOC     (1 &lt;&lt; 13)
+ZFS_DEBUG_BRT                (1 &lt;&lt; 14)
+ZFS_DEBUG_RAIDZ_RECONSTRUCT  (1 &lt;&lt; 15)
+ZFS_DEBUG_DDT                (1 &lt;&lt; 16)
+</code></pre></div>
+<p><code>ZFS_DEBUG_SET_ERROR</code> (<code>echo 512 &gt; .../zfs_flags</code>) deserves a call-out:
+it logs the file/function/line of every <code>SET_ERROR()</code> return, which
+turns "some syscall got EINVAL from somewhere in ZFS" into an exact
+source location - often the fastest path from errno to code. (This one
+works on non-debug builds too; the verify bits mostly pair with
+<code>--enable-debug</code>.)</p>
+<p>Remember the duplication: libzpool carries its own copy of this
+machinery (<code>lib/libzpool/zfs_debug.c</code>), which is what <code>zdb -G</code> /
+<code>zhack -G</code> print. Kernel log and userland log never mix.</p>
+<h3 id="kstats-counters-and-histories">kstats: counters and histories<a class="headerlink" href="#kstats-counters-and-histories" title="Permanent link">&para;</a></h3>
+<p>The Linux procfs layout under <code>/proc/spl/kstat/zfs/</code>:</p>
+<ul>
+<li><code>arcstats</code> - the ARC counter block
+  (<code>kstat_create("zfs", 0, "arcstats", ...)</code>, <code>module/zfs/arc.c:8112</code>).</li>
+<li><code>dbgmsg</code> - above.</li>
+<li><code>import_progress</code> - live per-import stage notes
+  (<code>procfs_list_install("zfs", NULL, "import_progress", ...)</code>,
+  <code>module/zfs/spa_misc.c:2405</code>; see Part 7's Observability section).</li>
+<li><code>&lt;pool&gt;/</code> - a directory per imported pool, from
+  <code>module/zfs/spa_stats.c</code>:</li>
+<li><code>state</code> - one-line pool health (<code>spa_state_init()</code>,
+    <code>spa_stats.c:807</code>)</li>
+<li><code>txgs</code> - recent txg history: birth times, dirty bytes, per-stage
+    latencies (<code>spa_txg_history_init()</code>, <code>spa_stats.c:289</code>; depth set
+    by the <code>zfs_txg_history</code> module parameter, <code>spa_stats.c:1070</code>) -
+    the first place to look for "sync is slow"</li>
+<li><code>reads</code> - read history, off by default (<code>zfs_read_history</code>)</li>
+<li><code>multihost</code> - MMP write history (<code>spa_stats.c:651</code>)</li>
+<li><code>iostats</code> - injection-visible I/O counters (<code>spa_stats.c:1009</code>)</li>
+</ul>
+<p>Like <code>dbgmsg</code>, the history lists are procfs lists: writing to them
+clears them.</p>
+<h3 id="zpool-events-history-status">zpool events, history, status<a class="headerlink" href="#zpool-events-history-status" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>zpool events [-v] [-f]</code> streams the kernel's fault-management
+  ereports (<code>cmd/zpool/zpool_main.c:12507</code> -&gt; <code>zpool_events_next()</code>
+  (<code>lib/libzfs/libzfs_pool.c:4910</code>) -&gt; <code>ZFS_IOC_EVENTS_NEXT</code>). The
+  producers live in <code>module/zfs/zfs_fm.c</code>: <code>zfs_ereport_post()</code>
+  (<code>zfs_fm.c:1167</code>) assembles <code>ereport.fs.zfs.*</code> nvlists (classes like
+  <code>FM_EREPORT_ZFS_IO</code>, <code>_DATA</code>, <code>_CHECKSUM</code>, <code>_DELAY</code>, <code>_DEADMAN</code>) and
+  queues them via <code>zfs_zevent_post()</code>. <code>-v</code> prints the full nvlist -
+  vdev guids, zio offsets/sizes, error numbers - which is exactly the
+  detail <code>zpool status</code> summarizes away. ZED consumes the same stream.</li>
+<li><code>zpool history -i</code> adds internal events (<code>cbdata.internal</code>,
+  <code>zpool_main.c:12122</code>) recorded by <code>spa_history_log_internal()</code>
+  (<code>module/zfs/spa_history.c:556</code>): every sync-task-level operation
+  (<code>receive</code>, <code>finish receiving</code>, <code>destroy</code>, feature activations)
+  with txg stamps. Part 8 used it to spot a receive that began but
+  never finished.</li>
+<li><code>zpool status -v</code> fetches the persistent error log
+  (<code>ZFS_IOC_ERROR_LOG</code> -&gt; <code>zfs_ioc_error_log()</code>
+  (<code>module/zfs/zfs_ioctl.c:7711</code>) -&gt; <code>spa_get_errlog()</code>
+  (<code>module/zfs/spa_errlog.c:1088</code>)) and resolves bookmarks to file
+  paths where it can. <code>zdb -O</code>/<code>-r</code> can chase the objects it names.</li>
+</ul>
+<h3 id="linux-static-tracepoints">Linux static tracepoints<a class="headerlink" href="#linux-static-tracepoints" title="Permanent link">&para;</a></h3>
+<p>Every <code>DTRACE_PROBE*()</code> call in shared code compiles, on Linux, into a
+static tracepoint in the <code>zfs:</code> group: the mapping macro is
+<code>DTRACE_PROBE1(name, ...) -&gt; trace_zfs_##name(...)</code>
+(<code>include/os/linux/spl/sys/trace.h:69</code>), the event classes live in
+<code>include/os/linux/zfs/sys/trace_*.h</code> (arc, dbuf, dmu, dnode, txg,
+vdev, zil, zio, ...), and <code>module/os/linux/zfs/trace.c</code> instantiates
+them all with <code>CREATE_TRACE_POINTS</code>. They are available whenever the
+kernel exposes <code>DECLARE_EVENT_CLASS</code> to non-GPL modules
+(<code>HAVE_DECLARE_EVENT_CLASS</code>, probed by
+<code>config/kernel-declare-event-class.m4</code>) - on such kernels they are in
+<em>every</em> module build, debug or not; where the probe is unavailable the
+build falls back to kprobe-able stub functions (the comment at
+<code>trace.h:26</code> describes both modes). Use them via
+<code>perf list 'zfs:*'</code>, <code>perf record -e zfs:zfs_arc__miss</code>, or
+<code>bpftrace -e 'tracepoint:zfs:zfs_arc__miss { @++ }'</code>. ARC hit/miss,
+<code>new_state__mru/mfu</code>, txg transitions, and dbuf events are the ones
+worth memorizing; everything heavier is better served by bpftrace
+kprobes on the function names this guide has been anchoring all along.</p>
+<hr />
+<h2 id="symptom-tool-map">Symptom -&gt; Tool Map<a class="headerlink" href="#symptom-tool-map" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Reach for</th>
+<th>Code entry point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pool will not import</td>
+<td><code>cat /proc/spl/kstat/zfs/dbgmsg</code> for <code>spa_load(...) FAILED:</code> lines, then <code>zdb -e [-p dir] [-t txg] &lt;pool&gt;</code> to rerun the load in-process with <code>-G</code> narration</td>
+<td><code>spa_load_impl()</code> stages (Part 7); <code>spa_import()</code> from <code>zdb</code> <code>main()</code> (<code>zdb.c:9945</code>)</td>
+</tr>
+<tr>
+<td>import hangs</td>
+<td><code>/proc/spl/kstat/zfs/import_progress</code></td>
+<td><code>spa_import_progress_set_notes()</code> (<code>spa_misc.c:2405</code>)</td>
+</tr>
+<tr>
+<td>suspected on-disk corruption</td>
+<td>scrub + <code>zpool events -v</code> on the live pool; <code>zdb -b</code> / <code>-c</code> (exported, or expect noise) for an independent verdict</td>
+<td><code>dsl_scan_sync()</code>; <code>dump_block_stats()</code> (<code>zdb.c:7258</code>)</td>
+</tr>
+<tr>
+<td>space accounting mystery ("where did my space go")</td>
+<td><code>zdb -m</code> / <code>-mm</code> for metaslab/space map view; <code>zdb -dd &lt;pool&gt;</code> for per-dataset deadlists/bpobjs; <code>-L</code> to skip leak detection cost</td>
+<td><code>dump_metaslabs()</code> (<code>zdb.c:1932</code>), <code>dump_zpool()</code> (<code>zdb.c:8635</code>)</td>
+</tr>
+<tr>
+<td>"permanent errors" list in status</td>
+<td><code>zpool status -v</code>, then <code>zdb -O</code>/<code>-r</code> to map object to path/data</td>
+<td><code>spa_get_errlog()</code> (<code>spa_errlog.c:1088</code>); <code>dump_path()</code> (<code>zdb.c:5229</code>)</td>
+</tr>
+<tr>
+<td>replication failure</td>
+<td><code>zstream dump</code> on the stream; compare the BEGIN <code>features</code> word to receiver checks (Part 8)</td>
+<td><code>dmu_recv_begin_check()</code> (<code>dmu_recv.c:621</code>)</td>
+</tr>
+<tr>
+<td>need to reproduce a bug under a debugger</td>
+<td><code>ztest</code>/<code>zloop.sh</code> for races; <code>zdb</code> against a small file-backed pool (<code>-e -p &lt;dir&gt;</code>) for decode/traversal logic; gdb/ASAN per Consequence 4</td>
+<td><code>ztest_run()</code> (<code>ztest.c:8371</code>); <code>.libs/</code> binaries</td>
+</tr>
+<tr>
+<td>need to <em>cause</em> an error (test error paths)</td>
+<td><code>zinject</code> recipes; clean up with <code>zinject -c all</code></td>
+<td><code>zio_inject_fault()</code> (<code>zio_inject.c:953</code>) and pipeline hooks</td>
+</tr>
+<tr>
+<td>errno with no context (EINVAL from where?)</td>
+<td><code>echo 512 &gt; /sys/module/zfs/parameters/zfs_flags</code>, retry, read dbgmsg</td>
+<td><code>SET_ERROR()</code> logging (<code>zfs_debug.h:59</code>, bit 9)</td>
+</tr>
+<tr>
+<td>feature-flag wedge / labels damaged / forced surgery</td>
+<td><code>zhack feature ...</code>, <code>zhack label repair</code> - exported pool only, after imaging the disks</td>
+<td><code>zhack_spa_open()</code> (<code>zhack.c:238</code>)</td>
+</tr>
+<tr>
+<td>hot-path performance question</td>
+<td>per-pool <code>txgs</code> kstat, <code>arcstats</code>, <code>zfs:</code> tracepoints via perf/bpftrace</td>
+<td><code>spa_stats.c</code>, <code>trace_*.h</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="the-toolbox-at-a-glance">The Toolbox at a Glance<a class="headerlink" href="#the-toolbox-at-a-glance" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>state observed              tool                     mechanism
+-------------------------   ----------------------   ---------------------------
+disks, direct (read-only)   zdb                      libzpool import, in-process
+disks, direct (writeable)   zhack                    libzpool import + sync tasks
+file vdevs, synthetic       ztest / zloop.sh         libzpool, SIGKILL + reimport
+kernel pipeline (inject)    zinject                  ZFS_IOC_INJECT_FAULT
+kernel narrative log        /proc/spl/kstat/zfs/dbgmsg
+kernel counters/history     /proc/spl/kstat/zfs/{arcstats,&lt;pool&gt;/txgs,...}
+kernel fault stream         zpool events -v          zfs_fm.c ereports
+MOS-recorded operations     zpool history -i         spa_history_log_internal()
+persistent error log        zpool status -v          spa_get_errlog()
+hot-path timing             perf/bpftrace zfs:*      DTRACE_PROBE tracepoints
+</code></pre></div>
+<p>Userland tools see the disks as they are <em>now</em>, through their own
+import. Kernel surfaces see the module's in-memory truth. Neither sees
+the other. Choose accordingly - and when two tools disagree, the first
+hypothesis should be that they are looking at different copies of the
+state, not that one of them is lying.</p>
+<hr />
+<h2 id="key-takeaways">Key Takeaways<a class="headerlink" href="#key-takeaways" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>zdb</code>, <code>zhack</code>, and <code>ztest</code> are userland pool imports: libzpool
+   compiles <code>module/zfs/*.c</code> into a library, <code>lib/libspl</code> +
+   <code>lib/libzpool/kernel.c</code> fake the kernel services, and the tools run
+   the real Part 7 load machine in-process, bypassing the kernel
+   module entirely.</li>
+<li>Therefore zdb on a live pool can race the kernel: transient errors
+   and spurious leak reports on busy pools are expected; zdb even
+   forces <code>spa_load_verify_dryrun</code> so it can load non-idle pools.</li>
+<li>In-tree binaries are libtool wrappers with absolute build paths
+   baked in; the real binaries in <code>.libs/</code> have no RPATH and will
+   silently bind to <em>system</em> libraries with matching SONAMEs. The fix
+   is <code>LD_LIBRARY_PATH</code> at the top-level <code>.libs/</code> (never
+   <code>lib/*/.libs</code>, which hold only objects). Mixed-version
+   libzpool has no ABI guarantee - expect a startup segfault, or worse.</li>
+<li>The payoff of the userland model: gdb, valgrind, and
+   <code>--enable-debug --enable-asan</code> all work on kernel logic - and the
+   model is embeddable, if you keep its constraints (one global import
+   per process, serialize everything, match <code>ZFS_DEBUG</code>, pin your
+   libzpool).</li>
+<li><code>zdb -b</code> leak detection is an elegant inversion: load space maps as
+   <em>allocated</em> trees, traverse the block tree removing what you find,
+   and whatever remains is a leak. <code>-L</code> skips it; exit code 3 means
+   corruption was seen.</li>
+<li><code>zhack</code> is the same import with the safety off:
+   <code>zfeature_checks_disable</code>, writeable sync tasks, and no kernel
+   coordination - exported pools only.</li>
+<li><code>zinject</code> is the one tool in the family that targets the <em>kernel</em>:
+   handlers registered by ioctl, checked at fixed pipeline points
+   (<code>zio_vdev_io_done()</code>, <code>zio_vdev_io_assess()</code>, <code>zio_decrypt()</code>,
+   ...). Handlers persist and pin the spa: <code>zinject -c all</code> when done.</li>
+<li>The kernel narrates: <code>dbgmsg</code> (clear with a write), <code>zfs_flags</code>
+   bit 9 to log every <code>SET_ERROR()</code>, per-pool <code>txgs</code>/<code>state</code> kstats,
+   <code>zpool events -v</code> for the raw ereport stream, <code>zpool history -i</code>
+   for sync-task archaeology, and <code>zfs:</code> tracepoints for perf/bpftrace</li>
+<li>no debug build required for any of these except <code>dprintf</code>.</li>
+<li>Debugging ZFS is choosing the tool that can see the state your
+   hypothesis is about. Userland tools see the disks; kernel surfaces
+   see the module; nothing sees both.</li>
+</ol>
+<hr />
+<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<p>This completes the planned series. If you started here: <a href="../01-architecture-overview/">Part 1 -
+Architecture Overview</a> builds the map
+this chapter's tools navigate, and every earlier part ends with the
+observability hooks this one catalogues.</p>
+<p>The guide is pinned to one revision (<code>0f9564e85</code>) of a codebase that
+does not stand still. If you find an anchor that has drifted, a claim
+the code no longer supports, or a tool this toolbox is missing - file
+an issue or send a correction. That is, after all, what the toolbox is
+for.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../08-send-receive/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Part 8: Send and Receive">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Part 8: Send and Receive
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.view", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
